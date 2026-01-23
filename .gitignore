@@ -1,0 +1,21 @@
+# Database & Config
+.env
+config.php
+koneksi_private.php
+
+# PHP & Server Logs
+*.log
+error_log
+php_errors.log
+
+# OS Metadata
+.DS_Store
+Thumbs.db
+
+# IDE Settings
+.vscode/
+.idea/
+
+# Temp files
+tmp/
+temp/

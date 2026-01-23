@@ -1,42 +1,45 @@
 <?php
-// 1. Deteksi Base URL otomatis agar assets tidak pecah
-$protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
-$host_url = $_SERVER['HTTP_HOST'];
-$base_url = "$protocol://$host_url/";
+function get_env_var($key, $default = null) {
+    $value = getenv($key);
+    return ($value !== false) ? $value : $default;
+}
 
-// 2. Konfigurasi Database
-// Gunakan environment variables (rekomendasi Vercel) atau isi manual jika untuk testing
-if ($host_url == 'localhost' || strpos($host_url, '127.0.0.1') !== false) {
-    // KONEKSI LOKAL
-    $host = 'localhost';
+$host_url = $_SERVER['HTTP_HOST'];
+$is_localhost = ($host_url == 'localhost' || strpos($host_url, '127.0.0.1') !== false);
+
+if ($is_localhost) {
+    $host     = 'localhost';
     $username = 'root';
     $password = '';
     $database = 'toko_pertanian';
+    $port     = 3306;
+    $options  = [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION];
 } else {
-    // KONEKSI VERCEL (Ganti dengan data dari database online kamu)
-    $host = 'alamat_host_online_kamu'; 
-    $username = 'user_db_online';
-    $password = 'pass_db_online';
-    $database = 'nama_db_online';
+    $host     = get_env_var('DB_HOST');
+    $username = get_env_var('DB_USER');
+    $password = get_env_var('DB_PASS');
+    $database = get_env_var('DB_NAME');
+    $port     = get_env_var('DB_PORT', 4000);
+
+    // Opsi SSL Wajib untuk TiDB Cloud
+    $options = [
+        PDO::MYSQL_ATTR_SSL_CA => true,
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+    ];
 }
 
 try {
-    $pdo = new PDO("mysql:host=$host;dbname=$database", $username, $password);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $pdo = new PDO("mysql:host=$host;port=$port;dbname=$database", $username, $password, $options);
     
-    $conn = new mysqli($host, $username, $password, $database);
-    
-    if ($conn->connect_error) {
-        die("Koneksi gagal: " . $conn->connect_error);
+    $conn = mysqli_init();
+    if (!$is_localhost) {
+        mysqli_ssl_set($conn, NULL, NULL, NULL, NULL, NULL);
     }
-    
-    $conn->set_charset("utf8");
+    mysqli_real_connect($conn, $host, $username, $password, $database, $port);
     
 } catch(PDOException $e) {
     die("Koneksi gagal: " . $e->getMessage());
 }
-
-// --- Fungsi-fungsi lainnya tetap sama ---
 
 function sanitize($data) {
     global $conn;
