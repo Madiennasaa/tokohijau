@@ -5,27 +5,26 @@
       "runtime": "vercel-php@0.7.1"
     }
   },
-  "routes": [
+  "rewrites": [
     {
-      "src": "/assets/(.*)",
-      "dest": "/assets/$1"
+      "source": "/assets/(.*)",
+      "destination": "/assets/$1"
     },
     {
-      "src": "/(login|register|checkout|keranjang|produk|tentang|kontak|dashboard)",
-      "dest": "/api/$1.php"
+      "source": "/login",
+      "destination": "/api/login.php"
     },
     {
-      "src": "/api/(.*).php",
-      "dest": "/api/$1.php"
+      "source": "/produk",
+      "destination": "/api/lihat_produk.php"
     },
     {
-      "src": "/",
-      "dest": "/api/index.php"
+      "source": "/tentang",
+      "destination": "/api/tentang.php"
     },
     {
-      "src": "/(.*)",
-      "dest": "/api/$1.php",
-      "status": 404
+      "source": "/",
+      "destination": "/api/index.php"
     }
   ]
 }
