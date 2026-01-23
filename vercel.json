@@ -1,5 +1,4 @@
 {
-  "version": 2,
   "functions": {
     "api/*.php": {
       "runtime": "vercel-php@0.7.1"
@@ -11,40 +10,8 @@
       "dest": "/assets/$1"
     },
     {
-      "src": "/login",
-      "dest": "/api/login.php"
-    },
-    {
-      "src": "/register",
-      "dest": "/api/register.php"
-    },
-    {
-      "src": "/produk",
-      "dest": "/api/lihat_produk.php"
-    },
-    {
-      "src": "/tentang",
-      "dest": "/api/tentang.php"
-    },
-    {
-      "src": "/keranjang",
-      "dest": "/api/keranjang.php"
-    },
-    {
-      "src": "/checkout",
-      "dest": "/api/checkout.php"
-    },
-    {
-      "src": "/dashboard",
-      "dest": "/api/dashboard.php"
-    },
-    {
-      "src": "/",
-      "dest": "/api/index.php"
-    },
-    {
       "src": "/(.*)",
-      "dest": "/api/index.php"
+      "dest": "/api/$1.php"
     }
   ]
 }
