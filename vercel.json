@@ -10,12 +10,12 @@
       "dest": "/assets/$1"
     },
     {
-      "src": "/tentang",
-      "dest": "/api/tentang.php"
+      "src": "/(login|register|checkout|keranjang|produk|tentang|kontak|dashboard)",
+      "dest": "/api/$1.php"
     },
     {
-      "src": "/produk",
-      "dest": "/api/lihat_produk.php"
+      "src": "/api/(.*).php",
+      "dest": "/api/$1.php"
     },
     {
       "src": "/(.*)",
