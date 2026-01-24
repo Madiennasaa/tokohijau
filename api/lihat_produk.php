@@ -1,26 +1,21 @@
 <?php
-session_start();
-require_once 'koneksi.php'; // HARUS define $pdo (PDO)
+include 'koneksi.php';
 
-// ==========================
-// PAGINATION
-// ==========================
+// Pagination
 $items_per_page = 6;
 $current_page = max(1, (int)($_GET['page'] ?? 1));
 $offset = ($current_page - 1) * $items_per_page;
 
-// Total produk
+// Hitung total produk
 $total_stmt = $pdo->query("SELECT COUNT(*) FROM barang");
-$total_items = (int)$total_stmt->fetchColumn();
-$total_pages = max(1, ceil($total_items / $items_per_page));
+$total_items = $total_stmt->fetchColumn();
 
-if ($current_page > $total_pages) {
+$total_pages = ceil($total_items / $items_per_page);
+if ($current_page > $total_pages && $total_pages > 0) {
     $current_page = $total_pages;
 }
 
-// ==========================
-// FILTER
-// ==========================
+// Filter
 $where = [];
 $params = [];
 
@@ -38,44 +33,23 @@ if (!empty($_GET['max_price'])) {
 
 $where_sql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 
-// ==========================
-// PRODUK
-// ==========================
-$sql = "
-    SELECT *
-    FROM barang
-    $where_sql
-    ORDER BY id_barang DESC
-    LIMIT $offset, $items_per_page
-";
+// Query produk
+$sql = "SELECT * FROM barang $where_sql LIMIT $offset, $items_per_page";
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
-$products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$products = $stmt->fetchAll();
 
-// ==========================
-// KATEGORI
-// ==========================
-$kategori_stmt = $pdo->query("SELECT * FROM kategori");
-$kategori_list = $kategori_stmt->fetchAll(PDO::FETCH_ASSOC);
-
-// map id => nama
-$kategori_map = [];
-foreach ($kategori_list as $k) {
-    $kategori_map[$k['id_kategori']] = $k['nama_kategori'];
-}
-
-// ==========================
-// LOGIN
-// ==========================
+// Login status
 $is_logged_in = isset($_SESSION['user_id']);
 $user_role = $is_logged_in ? $_SESSION['role'] : 'guest';
 ?>
-
+ 
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Produk | Toko Hijau</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toko Hijau - Produk</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -443,193 +417,489 @@ $user_role = $is_logged_in ? $_SESSION['role'] : 'guest';
         }
     </style>
 </head>
-
 <body>
-
-<!-- NAVBAR -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-success fixed-top">
-    <div class="container">
-        <a class="navbar-brand" href="index.php">
-            <i class="fas fa-seedling me-2"></i>Toko Hijau
-        </a>
-        <div class="collapse navbar-collapse">
-            <ul class="navbar-nav ms-auto">
-                <li class="nav-item"><a class="nav-link active" href="lihat_produk.php">Produk</a></li>
-                <?php if($is_logged_in): ?>
-                    <li class="nav-item"><a class="nav-link" href="keranjang.php">Keranjang</a></li>
-                    <li class="nav-item"><a class="nav-link" href="logout.php">Logout</a></li>
-                <?php else: ?>
-                    <li class="nav-item"><a class="nav-link" href="login.php">Login</a></li>
-                <?php endif; ?>
-            </ul>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-modern fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="<?php echo $is_logged_in ? 'dashboard.php' : 'index.php'; ?>">
+                <i class="fas fa-seedling me-2"></i>Toko Hijau
+            </a>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <?php if($is_logged_in): ?>
+                        <!-- User Menu -->
+                        <li class="nav-item">
+                            <a class="nav-link" href="<?php echo $is_logged_in ? 'dashboard.php' : 'index.php'; ?>">
+                                <i class="fas fa-home me-1"></i> Beranda
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="lihat_produk.php"><i class="fas fa-store me-1"></i> Produk</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="keranjang.php"><i class="fas fa-shopping-cart me-1"></i> Keranjang</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="pesanan.php"><i class="fas fa-clipboard-list me-1"></i> Pesanan</a>
+                        </li>
+                        <li class="nav-item dropdown ms-3">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user me-1"></i> <?php echo htmlspecialchars($_SESSION['nama']); ?>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="logout.php"><i class="fas fa-sign-out-alt me-1"></i> Logout</a></li>
+                            </ul>
+                        </li>
+                    <?php else: ?>
+                        <!-- Guest Menu -->
+                        <li class="nav-item">
+                            <a class="nav-link" href="<?php echo $is_logged_in ? 'dashboard.php' : 'index.php'; ?>">
+                                <i class="fas fa-home me-1"></i> Beranda
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="lihat_produk.php">
+                                <i class="fas fa-store me-1"></i> Produk
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="tentang.php">
+                                <i class="fas fa-info-circle me-1"></i> Tentang
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="kontak.php">
+                                <i class="fas fa-phone me-1"></i> Kontak
+                            </a>
+                        </li>
+                        <li class="nav-item ms-3">
+                            <a href="login.php" class="btn btn-login">
+                                <i class="fas fa-sign-in-alt me-1"></i> Masuk
+                            </a>
+                        </li>
+                    <?php endif; ?>
+                </ul>
+            </div>
         </div>
-    </div>
-</nav>
+    </nav>
 
-<div class="container" style="margin-top:100px">
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="floating-element">
+            <i class="fas fa-leaf text-white opacity-25" style="font-size: 3rem;"></i>
+        </div>
+        <div class="floating-element">
+            <i class="fas fa-seedling text-white opacity-25" style="font-size: 2.5rem;"></i>
+        </div>
+        <div class="floating-element">
+            <i class="fas fa-tree text-white opacity-25" style="font-size: 3.5rem;"></i>
+        </div>
 
-<?php if(!$is_logged_in): ?>
-<div class="alert alert-warning">
-    <i class="fas fa-info-circle"></i>
-    Silakan <a href="login.php" class="fw-bold">login</a> untuk melakukan pemesanan.
-</div>
-<?php endif; ?>
-
-<div class="row">
-
-<!-- FILTER -->
-<div class="col-md-3">
-    <div class="card mb-4">
-        <div class="card-body">
-            <h5>Filter Produk</h5>
-
-            <h6>Kategori</h6>
-            <?php foreach ($kategori_list as $cat): ?>
-                <div class="form-check">
-                    <input class="form-check-input cat-check"
-                        type="checkbox"
-                        value="<?= $cat['id_kategori'] ?>"
-                        <?= (isset($_GET['kategori']) && in_array($cat['id_kategori'], explode(',', $_GET['kategori']))) ? 'checked' : '' ?>>
-                    <label class="form-check-label">
-                        <?= htmlspecialchars($cat['nama_kategori']) ?>
-                    </label>
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-8 text-center hero-content">
+                    <h1 class="hero-title">Produk Kami</h1>
+                    <p class="hero-subtitle">Temukan produk pertanian berkualitas tinggi untuk mendukung aktivitas bertani Anda</p>
                 </div>
-            <?php endforeach; ?>
-
-            <hr>
-
-            <h6>Harga Maks</h6>
-            <input type="number" id="maxPrice" class="form-control"
-                   value="<?= $_GET['max_price'] ?? '' ?>">
-
-            <div class="d-grid gap-2 mt-3">
-                <button class="btn btn-success" onclick="applyFilter()">Terapkan</button>
-                <a href="lihat_produk.php" class="btn btn-outline-secondary">Reset</a>
             </div>
         </div>
-    </div>
-</div>
+    </section>
 
-<!-- PRODUK -->
-<div class="col-md-9">
-
-<p class="text-muted">
-    Menampilkan <b><?= count($products) ?></b> dari <b><?= $total_items ?></b> produk
-</p>
-
-<?php if(empty($products)): ?>
-<div class="alert alert-info">Produk tidak ditemukan.</div>
-<?php else: ?>
-<div class="row">
-<?php foreach ($products as $p): ?>
-    <div class="col-md-4 mb-4">
-        <div class="card h-100">
-            <img src="<?= htmlspecialchars($p['gambar'] ?? 'https://via.placeholder.com/300') ?>"
-                 class="card-img-top">
-
-            <div class="card-body d-flex flex-column">
-                <span class="badge bg-secondary mb-2">
-                    <?= htmlspecialchars($kategori_map[$p['id_kategori']] ?? '-') ?>
-                </span>
-
-                <h5><?= htmlspecialchars($p['nama_barang']) ?></h5>
-                <p class="text-success fw-bold">
-                    Rp <?= number_format($p['harga_eceran'],0,',','.') ?>
-                </p>
-                <p class="small text-muted flex-grow-1">
-                    <?= htmlspecialchars(substr($p['deskripsi'],0,100)) ?>...
-                </p>
-
-                <a href="detail_barang.php?id=<?= $p['id_barang'] ?>"
-                   class="btn btn-success mt-auto">
-                    Lihat Detail
-                </a>
+    <section class="container mb-5" style="padding-top: 2rem;">
+        <?php if(!$is_logged_in): ?>
+        <div class="guest-notice">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-info-circle me-3 text-warning" style="font-size: 1.5rem;"></i>
+                <div>
+                    <h5 class="mb-1">Anda belum login</h5>
+                    <p class="mb-0">Silakan <a href="login.php" class="text-success fw-bold">login</a> untuk dapat menambahkan produk ke keranjang dan melakukan pemesanan.</p>
+                </div>
             </div>
         </div>
-    </div>
-<?php endforeach; ?>
-</div>
-<?php endif; ?>
+        <?php endif; ?>
 
-<!-- PAGINATION -->
-<nav>
-<ul class="pagination justify-content-center">
-<?php for($i=1;$i<=$total_pages;$i++): ?>
-<li class="page-item <?= $i==$current_page?'active':'' ?>">
-<a class="page-link" href="?page=<?= $i ?>
-<?= isset($_GET['kategori'])?'&kategori='.$_GET['kategori']:'' ?>
-<?= isset($_GET['max_price'])?'&max_price='.$_GET['max_price']:'' ?>">
-<?= $i ?>
-</a>
-</li>
-<?php endfor; ?>
-</ul>
-</nav>
+        <?php if(isset($_GET['kategori']) || isset($_GET['max_price'])): ?>
+        <div class="alert filter-active alert-dismissible fade show">
+            <i class="fas fa-filter me-2"></i> <strong>Filter aktif:</strong> 
+            <?php 
+            if (isset($_GET['kategori'])) {
+                $kategori_names = [];
+                $kategori_ids = array_map('intval', explode(',', $_GET['kategori']));
 
-</div>
-</div>
-</div>
+                $in  = str_repeat('?,', count($kategori_ids) - 1) . '?';
+                $stmtKat = $pdo->prepare("SELECT nama_kategori FROM kategori WHERE id_kategori IN ($in)");
+                $stmtKat->execute($kategori_ids);
+
+                while ($kat = $stmtKat->fetch(PDO::FETCH_ASSOC)) {
+                    $kategori_names[] = $kat['nama_kategori'];
+                }
+
+                echo 'Kategori: ' . implode(', ', $kategori_names) . ' ';
+            }
+
+            if (isset($_GET['max_price'])) {
+                echo 'Harga maks: Rp ' . number_format($_GET['max_price'], 0, ',', '.');
+            }
+            ?>
+            <a href="lihat_produk.php" class="float-end text-decoration-none">
+                <i class="fas fa-times"></i> Hapus semua filter
+            </a>
+        </div>
+        <?php endif; ?>
+
+        <div class="row">
+            <!-- Filter Section -->
+            <div class="col-md-3 mb-4">
+                <div class="filter-section">
+                    <h5><i class="fas fa-filter me-2"></i>Filter Produk</h5>
+                    
+                    <!-- Kategori Filter -->
+                    <div class="mb-4">
+                        <h6><i class="fas fa-tags me-2"></i>Kategori</h6>
+                        <?php
+                        $stmtCat = $pdo->query("SELECT * FROM kategori");
+                        $categories = $stmtCat->fetchAll(PDO::FETCH_ASSOC);
+                        foreach ($categories as $cat):
+                        ?>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" value="<?php echo $cat['id_kategori']; ?>" id="cat<?php echo $cat['id_kategori']; ?>"
+                                <?php echo (isset($_GET['kategori']) && in_array($cat['id_kategori'], explode(',', $_GET['kategori']))) ? 'checked' : ''; ?>>
+                            <label class="form-check-label" for="cat<?php echo $cat['id_kategori']; ?>">
+                                <?php echo htmlspecialchars($cat['nama_kategori']); ?>
+                            </label>
+                        </div>
+                        <?php endwhile; ?>
+                    </div>
+                    
+                    <!-- Harga Filter -->
+                    <div class="mb-4">
+                        <h6><i class="fas fa-money-bill-wave me-2"></i>Range Harga</h6>
+                        <input type="range" class="form-range" min="0" max="1000000" step="10000" id="priceRange" 
+                               value="<?php echo isset($_GET['max_price']) ? (int)$_GET['max_price'] : 1000000; ?>">
+                        <div class="d-flex justify-content-between mt-2">
+                            <small class="text-muted">Rp 0</small>
+                            <small class="text-muted" id="priceValue">Rp <?php echo isset($_GET['max_price']) ? number_format($_GET['max_price'], 0, ',', '.') : '1.000.000'; ?></small>
+                        </div>
+                    </div>
+                    
+                    <!-- Tombol Filter -->
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-success" id="applyFilter">
+                            <i class="fas fa-filter me-2"></i>Terapkan Filter
+                            <?php if(isset($_GET['kategori']) || isset($_GET['max_price'])): ?>
+                            <span class="badge bg-white text-success ms-2">Aktif</span>
+                            <?php endif; ?>
+                        </button>
+                        <button class="btn btn-outline-secondary" id="resetFilter">
+                            <i class="fas fa-sync-alt me-2"></i>Reset Filter
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Produk Section -->
+            <div class="col-md-9">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h5 class="text-muted">Menampilkan <span class="text-success fw-bold"><?php echo count($products); ?></span> produk dari <span class="text-success fw-bold"><?php echo $total_items; ?></span> total produk</h5>
+                    </div>
+                </div>
+                
+                <?php if(empty($products)): ?>
+                <div class="alert alert-info border-0" style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-radius: 15px;">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-info-circle me-3 text-blue" style="font-size: 1.5rem;"></i>
+                        <div>
+                            <h5 class="mb-1">Tidak ada produk ditemukan</h5>
+                            <p class="mb-0">Tidak ada produk yang ditemukan dengan filter saat ini. <a href="lihat_produk.php" class="text-primary fw-bold">Tampilkan semua produk</a></p>
+                        </div>
+                    </div>
+                </div>
+                <?php else: ?>
+                <div class="row">
+                    <?php foreach ($products as $product): ?>
+                    <div class="col-lg-4 col-md-6 mb-4">
+                        <div class="product-card h-100 d-flex flex-column">
+                            <div class="position-relative" style="overflow: hidden; border-radius: 20px 20px 0 0;">
+                                <a href="detail_barang.php?id=<?php echo $product['id_barang']; ?>">
+                                    <img src="<?php echo htmlspecialchars($product['gambar'] ?? 'https://via.placeholder.com/300'); ?>" 
+                                        class="product-img" 
+                                        alt="<?php echo htmlspecialchars($product['nama_barang']); ?>">
+                                </a>
+                                <span class="badge <?php 
+                                    if ($product['stok'] == 0) {
+                                        echo 'bg-danger'; 
+                                    } elseif ($product['stok'] < 25) {
+                                        echo 'bg-warning text-dark'; 
+                                    } else {
+                                        echo 'bg-success';
+                                    }
+                                ?> stock-badge">
+                                    <?php echo $product['stok'] > 0 ? 'Stok: '.$product['stok'] : 'Habis'; ?>
+                                </span>
+                            </div>
+
+                            <div class="p-3 d-flex flex-column h-100">
+                                <div class="mb-2">
+                                    <span class="badge badge-category"><?php
+                                    $stmtKat = $pdo->prepare("SELECT nama_kategori FROM kategori WHERE id_kategori = ?");
+                                    $stmtKat->execute([$product['id_kategori']]);
+                                    $kategori = $stmtKat->fetch(PDO::FETCH_ASSOC);
+                                    echo htmlspecialchars($kategori['nama_kategori'] ?? '-');
+                                    ?>
+                                    </span>
+                                </div>
+                                <h5 class="fw-bold mb-2">
+                                    <a href="detail_barang.php?id=<?php echo $product['id_barang']; ?>" class="text-decoration-none text-dark">
+                                        <?php echo htmlspecialchars($product['nama_barang']); ?>
+                                    </a>
+                                </h5>
+                                <p class="price mb-2">Rp <?php echo number_format($product['harga_eceran'], 0, ',', '.'); ?></p>
+                                <p class="text-muted small mb-3 flex-grow-1"><?php 
+                                    echo strlen($product['deskripsi']) > 100 ? 
+                                        substr(htmlspecialchars($product['deskripsi']), 0, 100).'...' : 
+                                        htmlspecialchars($product['deskripsi']);
+                                ?></p>
+
+                                <div class="d-grid gap-2 mt-auto">
+                                    <a href="detail_barang.php?id=<?php echo $product['id_barang']; ?>" class="btn btn-success">
+                                        <i class="fas fa-eye me-2"></i>Lihat Detail
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+                
+                <!-- Pagination -->
+                <?php if($total_pages > 1): ?>
+                <nav aria-label="Page navigation" class="mt-5">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item <?php echo ($current_page == 1) ? 'disabled' : ''; ?>">
+                            <a class="page-link" href="?page=<?php echo $current_page-1; ?><?php echo isset($_GET['kategori']) ? '&kategori='.$_GET['kategori'] : ''; ?><?php echo isset($_GET['max_price']) ? '&max_price='.$_GET['max_price'] : ''; ?>" tabindex="-1">
+                                <i class="fas fa-chevron-left me-1"></i>Sebelumnya
+                            </a>
+                        </li>
+                        
+                        <?php 
+                        // Tampilkan maksimal 5 nomor halaman di sekitar current page
+                        $start_page = max(1, $current_page - 2);
+                        $end_page = min($total_pages, $current_page + 2);
+                        
+                        if ($start_page > 1) {
+                            echo '<li class="page-item"><a class="page-link" href="?page=1'.(isset($_GET['kategori']) ? '&kategori='.$_GET['kategori'] : '').(isset($_GET['max_price']) ? '&max_price='.$_GET['max_price'] : '').'">1</a></li>';
+                            if ($start_page > 2) {
+                                echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
+                            }
+                        }
+                        
+                        for ($i = $start_page; $i <= $end_page; $i++): 
+                        ?>
+                            <li class="page-item <?php echo ($current_page == $i) ? 'active' : ''; ?>">
+                                                                <a class="page-link" href="?page=<?php echo $i; ?><?php echo isset($_GET['kategori']) ? '&kategori='.$_GET['kategori'] : ''; ?><?php echo isset($_GET['max_price']) ? '&max_price='.$_GET['max_price'] : ''; ?>">
+                                    <?php echo $i; ?>
+                                </a>
+                            </li>
+                        <?php 
+                        endfor;
+                        
+                        if ($end_page < $total_pages) {
+                            if ($end_page < $total_pages - 1) {
+                                echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
+                            }
+                            echo '<li class="page-item"><a class="page-link" href="?page='.$total_pages.(isset($_GET['kategori']) ? '&kategori='.$_GET['kategori'] : '').(isset($_GET['max_price']) ? '&max_price='.$_GET['max_price'] : '').'">'.$total_pages.'</a></li>';
+                        }
+                        ?>
+                        
+                        <li class="page-item <?php echo ($current_page == $total_pages) ? 'disabled' : ''; ?>">
+                            <a class="page-link" href="?page=<?php echo $current_page+1; ?><?php echo isset($_GET['kategori']) ? '&kategori='.$_GET['kategori'] : ''; ?><?php echo isset($_GET['max_price']) ? '&max_price='.$_GET['max_price'] : ''; ?>">
+                                Selanjutnya <i class="fas fa-chevron-right ms-1"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+                <?php endif; ?>
+                <?php endif; ?>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <?php if($is_logged_in): ?>
+    <!-- Footer untuk anggota (sudah login) -->
+    <footer class="footer-modern">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-4 mb-4">
+                    <h5 class="footer-brand mb-3">
+                        <i class="fas fa-seedling me-2"></i>Toko Hijau
+                    </h5>
+                    <p class="text-white">Platform terpercaya untuk produk pertanian berkualitas, ramah lingkungan, dan mendukung pertanian berkelanjutan di Indonesia.</p>
+                    <div class="mt-4">
+                        <a href="#" class="footer-link d-inline-block me-3">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        <a href="#" class="footer-link d-inline-block me-3">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        <a href="#" class="footer-link d-inline-block me-3">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="col-lg-2 col-md-6 mb-4">
+                    <h6 class="text-white fw-bold mb-3">Akun</h6>
+                    <a href="dashboard.php" class="footer-link">Dashboard</a>
+                    <a href="#" class="footer-link">Produk</a>
+                    <a href="keranjang.php" class="footer-link">Keranjang</a>
+                    <a href="pesanan.php" class="footer-link">Pesanan</a>
+                </div>
+                
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <h6 class="text-white fw-bold mb-3">Produk</h6>
+                    <a href="#" class="footer-link">Alat Pertanian</a>
+                    <a href="#" class="footer-link">Pupuk Organik</a>
+                    <a href="#" class="footer-link">Benih Unggul</a>
+                    <a href="#" class="footer-link">Pestisida Alami</a>
+                </div>
+                
+                <div class="col-lg-3 mb-4">
+                    <h6 class="text-white fw-bold mb-3">Layanan Pelanggan</h6>
+                    <div class="footer-link">
+                        <i class="fas fa-envelope me-2"></i>
+                        cs@tokohijau.com
+                    </div>
+                    <div class="footer-link">
+                        <i class="fas fa-phone me-2"></i>
+                        +62 123 4567 890 (CS)
+                    </div>
+                    <div class="footer-link">
+                        <i class="fas fa-clock me-2"></i>
+                        Senin-Jumat, 08:00-17:00
+                    </div>
+                </div>
+            </div>
+            
+            <hr class="my-4" style="border-color: #374151;">
+            <div class="text-center">
+                <p class="text-white mb-0">&copy; 2024 Toko Hijau. Semua hak dilindungi undang-undang.</p>
+            </div>
+        </div>
+    </footer>
+    <?php else: ?>
+    <!-- Footer untuk user guest (belum login) -->
+    <footer class="footer-modern">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-4 mb-4">
+                    <h5 class="footer-brand mb-3">
+                        <i class="fas fa-seedling me-2"></i>Toko Hijau
+                    </h5>
+                    <p class="text-white">Platform terpercaya untuk produk pertanian berkualitas, ramah lingkungan, dan mendukung pertanian berkelanjutan di Indonesia.</p>
+                    <div class="mt-4">
+                        <a href="#" class="footer-link d-inline-block me-3">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        <a href="#" class="footer-link d-inline-block me-3">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        <a href="#" class="footer-link d-inline-block me-3">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="col-lg-2 col-md-6 mb-4">
+                    <h6 class="text-white fw-bold mb-3">Menu</h6>
+                    <a href="index.php" class="footer-link">Beranda</a>
+                    <a href="lihat_produk.php" class="footer-link">Produk</a>
+                    <a href="tentang.php" class="footer-link">Tentang</a>
+                    <a href="kontak.php" class="footer-link">Kontak</a>
+                </div>
+                
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <h6 class="text-white fw-bold mb-3">Produk</h6>
+                    <a href="#" class="footer-link">Alat Pertanian</a>
+                    <a href="#" class="footer-link">Pupuk Organik</a>
+                    <a href="#" class="footer-link">Benih Unggul</a>
+                    <a href="#" class="footer-link">Pestisida Alami</a>
+                </div>
+                
+                <div class="col-lg-3 mb-4">
+                    <h6 class="text-white fw-bold mb-3">Kontak</h6>
+                    <div class="footer-link">
+                        <i class="fas fa-envelope me-2"></i>
+                        info@tokohijau.com
+                    </div>
+                    <div class="footer-link">
+                        <i class="fas fa-phone me-2"></i>
+                        +62 123 4567 890
+                    </div>
+                    <div class="footer-link">
+                        <i class="fas fa-map-marker-alt me-2"></i>
+                        Jakarta, Indonesia
+                    </div>
+                </div>
+            </div>
+            
+            <hr class="my-4" style="border-color: #374151;">
+            <div class="text-center">
+                <p class="text-white mb-0">&copy; 2024 Toko Hijau. Semua hak dilindungi undang-undang.</p>
+            </div>
+        </div>
+    </footer>
+    <?php endif; ?>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-
-            const priceRange   = document.getElementById('priceRange');
-            const priceValue   = document.getElementById('priceValue');
-            const applyBtn     = document.getElementById('applyFilter');
-            const resetBtn     = document.getElementById('resetFilter');
-
-            // ❗ Kalau elemen penting nggak ada → stop
-            if (!priceRange || !priceValue || !applyBtn || !resetBtn) return;
-
-            const MAX_PRICE = priceRange.max || 1000000;
-
-            // Update tampilan harga
-            const updatePriceText = () => {
-                priceValue.textContent =
-                    'Rp ' + parseInt(priceRange.value).toLocaleString('id-ID');
-            };
-
-            updatePriceText();
-
-            priceRange.addEventListener('input', updatePriceText);
-
-            // APPLY FILTER
-            applyBtn.addEventListener('click', function () {
-
-                const selectedCategories = [];
-                document
-                    .querySelectorAll('.form-check-input:checked')
-                    .forEach(cb => selectedCategories.push(cb.value));
-
-                const params = new URLSearchParams();
-
-                if (selectedCategories.length > 0) {
-                    params.set('kategori', selectedCategories.join(','));
-                }
-
-                if (parseInt(priceRange.value) < MAX_PRICE) {
-                    params.set('max_price', priceRange.value);
-                }
-
-                window.location.href =
-                    'lihat_produk.php' + (params.toString() ? '?' + params.toString() : '');
+        document.addEventListener('DOMContentLoaded', function() {
+            const priceRange = document.getElementById('priceRange');
+            const priceValue = document.getElementById('priceValue');
+            
+            // Update tampilan harga saat slider diubah
+            priceRange.addEventListener('input', function() {
+                priceValue.textContent = 'Rp ' + parseInt(priceRange.value).toLocaleString('id-ID');
             });
-
-            // RESET FILTER
-            resetBtn.addEventListener('click', function () {
-                document
-                    .querySelectorAll('.form-check-input')
-                    .forEach(cb => cb.checked = false);
-
-                priceRange.value = MAX_PRICE;
-                updatePriceText();
-
+            
+            // Apply Filter
+            document.getElementById('applyFilter').addEventListener('click', function() {
+                const selectedCategories = [];
+                document.querySelectorAll('.form-check-input:checked').forEach(checkbox => {
+                    selectedCategories.push(checkbox.value);
+                });
+                
+                const maxPrice = priceRange.value;
+                let queryParams = [];
+                
+                if (selectedCategories.length > 0) {
+                    queryParams.push('kategori=' + selectedCategories.join(','));
+                }
+                
+                if (maxPrice < 1000000) {
+                    queryParams.push('max_price=' + maxPrice);
+                }
+                
+                window.location.href = 'lihat_produk.php' + (queryParams.length > 0 ? '?' + queryParams.join('&') : '');
+            });
+            
+            // Reset Filter
+            document.getElementById('resetFilter').addEventListener('click', function() {
+                // Reset semua input filter
+                document.querySelectorAll('.form-check-input').forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+                priceRange.value = 1000000;
+                priceValue.textContent = 'Rp 1.000.000';
+                
+                // Redirect tanpa parameter
                 window.location.href = 'lihat_produk.php';
             });
         });
     </script>
-
-
 </body>
 </html>
