@@ -6,10 +6,7 @@
     }
   },
   "routes": [
-    {
-      "src": "/assets/(.*)",
-      "dest": "/assets/$1"
-    },
+    { "src": "/assets/(.*)", "dest": "/assets/$1" },
 
     { "src": "/login", "dest": "/api/login_form.php" },
     { "src": "/register", "dest": "/api/register.php" },
@@ -20,9 +17,6 @@
     { "src": "/kontak", "dest": "/api/kontak.php" },
     { "src": "/lihat_produk", "dest": "/api/lihat_produk.php" },
 
-    {
-      "src": "/",
-      "dest": "/api/index.php"
-    }
+    { "src": "/", "dest": "/api/index.php" }
   ]
 }
