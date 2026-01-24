@@ -5,26 +5,18 @@
       "runtime": "vercel-php@0.7.1"
     }
   },
-  "rewrites": [
+  "routes": [
     {
-      "source": "/assets/(.*)",
-      "destination": "/assets/$1"
+      "src": "/assets/(.*)",
+      "dest": "/assets/$1"
     },
     {
-      "source": "/login",
-      "destination": "/api/login.php"
+      "src": "/api/(.*).php",
+      "dest": "/api/$1.php"
     },
     {
-      "source": "/produk",
-      "destination": "/api/lihat_produk.php"
-    },
-    {
-      "source": "/tentang",
-      "destination": "/api/tentang.php"
-    },
-    {
-      "source": "/",
-      "destination": "/api/index.php"
+      "src": "/(.*)",
+      "dest": "/api/index.php"
     }
   ]
 }
