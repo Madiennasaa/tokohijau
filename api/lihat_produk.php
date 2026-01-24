@@ -1,50 +1,45 @@
 <?php
 include 'koneksi.php';
 
-// Pagination settings
-$items_per_page = 6; // Jumlah item per halaman
-$current_page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-if ($current_page < 1) $current_page = 1;
-
-// Hitung offset untuk query
+// Pagination
+$items_per_page = 6;
+$current_page = max(1, (int)($_GET['page'] ?? 1));
 $offset = ($current_page - 1) * $items_per_page;
 
-// Query untuk menghitung total produk
-$total_items_query = "SELECT COUNT(*) as total FROM barang";
-$total_items_result = mysqli_query($conn, $total_items_query);
-$total_items = mysqli_fetch_assoc($total_items_result)['total'];
+// Hitung total produk
+$total_stmt = $pdo->query("SELECT COUNT(*) FROM barang");
+$total_items = $total_stmt->fetchColumn();
 
-// Hitung total halaman
 $total_pages = ceil($total_items / $items_per_page);
-
-// Pastikan current_page tidak melebihi total_pages
 if ($current_page > $total_pages && $total_pages > 0) {
     $current_page = $total_pages;
 }
 
-// Handle filters
-$kategori_filter = "";
-$harga_filter = "";
+// Filter
+$where = [];
+$params = [];
 
 // Filter kategori
-if(isset($_GET['kategori'])) {
-    $kategori_ids = explode(',', $_GET['kategori']);
-    $kategori_ids = array_map('intval', $kategori_ids);
-    $kategori_filter = " WHERE id_kategori IN (".implode(',', $kategori_ids).")";
+if (!empty($_GET['kategori'])) {
+    $ids = array_map('intval', explode(',', $_GET['kategori']));
+    $where[] = "id_kategori IN (" . implode(',', $ids) . ")";
 }
 
 // Filter harga
-if(isset($_GET['max_price'])) {
-    $max_price = (int)$_GET['max_price'];
-    $harga_filter = $kategori_filter ? " AND harga_eceran <= $max_price" : " WHERE harga_eceran <= $max_price";
+if (!empty($_GET['max_price'])) {
+    $where[] = "harga_eceran <= ?";
+    $params[] = (int)$_GET['max_price'];
 }
 
-// Query produk dengan filter dan pagination
-$products_query = "SELECT * FROM barang $kategori_filter $harga_filter LIMIT $offset, $items_per_page";
-$products_result = mysqli_query($conn, $products_query);
-$products = mysqli_fetch_all($products_result, MYSQLI_ASSOC);
+$where_sql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 
-// Cek status login
+// Query produk
+$sql = "SELECT * FROM barang $where_sql LIMIT $offset, $items_per_page";
+$stmt = $pdo->prepare($sql);
+$stmt->execute($params);
+$products = $stmt->fetchAll();
+
+// Login status
 $is_logged_in = isset($_SESSION['user_id']);
 $user_role = $is_logged_in ? $_SESSION['role'] : 'guest';
 ?>
