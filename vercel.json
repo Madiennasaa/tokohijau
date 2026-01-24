@@ -15,6 +15,14 @@
       "dest": "/api/$1.php"
     },
     {
+      "src": "/(login|register|lihat_produk|keranjang|checkout|tentang|kontak|dashboard)",
+      "dest": "/api/$1.php"
+    },
+    {
+      "src": "/",
+      "dest": "/api/index.php"
+    },
+    {
       "src": "/(.*)",
       "dest": "/api/index.php"
     }
