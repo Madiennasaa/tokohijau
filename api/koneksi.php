@@ -1,12 +1,12 @@
 <?php
 // ======================
-// SESSION HARUS PALING ATAS
+// SESSION PALING ATAS
 // ======================
 if (session_status() === PHP_SESSION_NONE) {
     session_set_cookie_params([
         'lifetime' => 604800,
         'path' => '/',
-        'secure' => isset($_SERVER['HTTPS']),
+        'secure' => true,
         'httponly' => true,
         'samesite' => 'Lax'
     ]);
@@ -16,46 +16,47 @@ if (session_status() === PHP_SESSION_NONE) {
 // ======================
 // ENV HELPER
 // ======================
-function get_env_var($key, $default = null) {
+function env($key, $default = null) {
     return $_ENV[$key] ?? getenv($key) ?? $default;
 }
 
 // ======================
 // DETEKSI ENV
 // ======================
-$host_url = $_SERVER['HTTP_HOST'] ?? 'localhost';
-$is_local = ($host_url === 'localhost' || str_contains($host_url, '127.0.0.1'));
+$is_local = in_array($_SERVER['HTTP_HOST'] ?? '', ['localhost', '127.0.0.1']);
 
 if ($is_local) {
-    $host = 'localhost';
-    $user = 'root';
-    $pass = '';
-    $db   = 'toko_pertanian';
-    $port = 3306;
+    $dsn  = "mysql:host=localhost;dbname=toko_pertanian;charset=utf8mb4";
+    $user = "root";
+    $pass = "";
 } else {
-    $host = get_env_var('DB_HOST');
-    $user = get_env_var('DB_USER');
-    $pass = get_env_var('DB_PASS');
-    $db   = get_env_var('DB_NAME');
-    $port = get_env_var('DB_PORT', 4000);
+    $dsn  = sprintf(
+        "mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4;sslmode=VERIFY_IDENTITY",
+        env('DB_HOST'),
+        env('DB_PORT', 4000),
+        env('DB_NAME')
+    );
+    $user = env('DB_USER');
+    $pass = env('DB_PASS');
 }
 
 // ======================
-// KONEKSI MYSQLI (UTAMA)
+// KONEKSI PDO (WAJIB SSL)
 // ======================
-$conn = mysqli_init();
-mysqli_ssl_set($conn, NULL, NULL, NULL, NULL, NULL);
-
-if (!mysqli_real_connect($conn, $host, $user, $pass, $db, $port)) {
-    die("Database connection failed");
+try {
+    $pdo = new PDO($dsn, $user, $pass, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    ]);
+} catch (PDOException $e) {
+    die("Koneksi database gagal");
 }
 
 // ======================
 // HELPER
 // ======================
 function sanitize($data) {
-    global $conn;
-    return mysqli_real_escape_string($conn, trim($data));
+    return htmlspecialchars(trim($data));
 }
 
 function redirect($url) {
