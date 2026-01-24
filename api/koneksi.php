@@ -1,78 +1,66 @@
 <?php
-// 1. Fungsi penarik variabel env yang lebih aman untuk Vercel
+// ======================
+// SESSION HARUS PALING ATAS
+// ======================
+if (session_status() === PHP_SESSION_NONE) {
+    session_set_cookie_params([
+        'lifetime' => 604800,
+        'path' => '/',
+        'secure' => isset($_SERVER['HTTPS']),
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
+    session_start();
+}
+
+// ======================
+// ENV HELPER
+// ======================
 function get_env_var($key, $default = null) {
-    $value = getenv($key);
-    if ($value === false && isset($_ENV[$key])) {
-        $value = $_ENV[$key];
-    }
-    return ($value !== false) ? $value : $default;
+    return $_ENV[$key] ?? getenv($key) ?? $default;
 }
 
-// 2. Deteksi lokasi (Lokal vs Vercel)
+// ======================
+// DETEKSI ENV
+// ======================
 $host_url = $_SERVER['HTTP_HOST'] ?? 'localhost';
-$is_localhost = ($host_url == 'localhost' || strpos($host_url, '127.0.0.1') !== false);
+$is_local = ($host_url === 'localhost' || str_contains($host_url, '127.0.0.1'));
 
-if ($is_localhost) {
-    // KONFIGURASI LOKAL (XAMPP/Laragon)
-    $host     = 'localhost';
-    $username = 'root';
-    $password = '';
-    $database = 'toko_pertanian';
-    $port     = 3306;
-    $options  = [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION];
+if ($is_local) {
+    $host = 'localhost';
+    $user = 'root';
+    $pass = '';
+    $db   = 'toko_pertanian';
+    $port = 3306;
 } else {
-    // KONFIGURASI ONLINE (TiDB Cloud + Vercel)
-    $host     = get_env_var('DB_HOST');
-    $username = get_env_var('DB_USER');
-    $password = get_env_var('DB_PASS');
-    $database = get_env_var('DB_NAME');
-    $port     = get_env_var('DB_PORT', 4000);
-
-    // Opsi SSL Wajib untuk TiDB Cloud Serverless
-    $options = [
-        PDO::MYSQL_ATTR_SSL_CA => true,
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8'
-    ];
+    $host = get_env_var('DB_HOST');
+    $user = get_env_var('DB_USER');
+    $pass = get_env_var('DB_PASS');
+    $db   = get_env_var('DB_NAME');
+    $port = get_env_var('DB_PORT', 4000);
 }
 
-try {
-    // Koneksi menggunakan PDO (Utama)
-    $pdo = new PDO("mysql:host=$host;port=$port;dbname=$database;charset=utf8", $username, $password, $options);
-    
-    // Koneksi menggunakan MySQLi (Opsional, jika script lama kamu pakai ini)
-    $conn = mysqli_init();
-    if (!$is_localhost) {
-        mysqli_ssl_set($conn, NULL, NULL, NULL, NULL, NULL);
-    }
-    
-    // @ digunakan untuk meredam error mentah agar tidak jadi 403/500 di Vercel
-    $db_connect = @mysqli_real_connect($conn, $host, $username, $password, $database, $port);
-    
-    if (!$db_connect && !$is_localhost) {
-        // Jika mysqli gagal tapi PDO mungkin jalan, atau sebaliknya
-        // Kita tidak matikan script agar tidak muncul error 403 mentah
-    }
+// ======================
+// KONEKSI MYSQLI (UTAMA)
+// ======================
+$conn = mysqli_init();
+mysqli_ssl_set($conn, NULL, NULL, NULL, NULL, NULL);
 
-} catch(PDOException $e) {
-    // Jika gagal konek, tampilkan pesan yang rapi (bukan error sistem)
-    die("Maaf, koneksi database sedang bermasalah. Error: " . $e->getMessage());
+if (!mysqli_real_connect($conn, $host, $user, $pass, $db, $port)) {
+    die("Database connection failed");
 }
 
-// 3. Fungsi Helper Umum
-if (!function_exists('sanitize')) {
-    function sanitize($data) {
-        global $conn;
-        if ($conn) {
-            return mysqli_real_escape_string($conn, htmlspecialchars(trim($data)));
-        }
-        return htmlspecialchars(trim($data));
-    }
+// ======================
+// HELPER
+// ======================
+function sanitize($data) {
+    global $conn;
+    return mysqli_real_escape_string($conn, trim($data));
 }
 
 function redirect($url) {
     header("Location: $url");
-    exit();
+    exit;
 }
 
 function isLoggedIn() {
@@ -80,17 +68,5 @@ function isLoggedIn() {
 }
 
 function isAdmin() {
-    return isset($_SESSION['role']) && $_SESSION['role'] == 'admin';
-}
-
-// 4. Pengaturan Session Aman
-if (session_status() === PHP_SESSION_NONE) {
-    session_set_cookie_params([
-        'lifetime' => 604800,
-        'path' => '/',
-        'secure' => isset($_SERVER['HTTPS']), 
-        'httponly' => true,
-        'samesite' => 'Lax'
-    ]);
-    session_start();
+    return isset($_SESSION['role']) && $_SESSION['role'] === 'admin';
 }
