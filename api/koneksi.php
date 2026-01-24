@@ -18,19 +18,13 @@ try {
     $pdo = new PDO($dsn, env('DB_USER'), env('DB_PASS'), [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+
+        // 🔥 INI KUNCI TIADB CLOUD
+        PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => false,
+        PDO::MYSQL_ATTR_SSL_CA => null,
     ]);
 
+    echo "✅ Koneksi TiDB Cloud BERHASIL";
 } catch (PDOException $e) {
-    // UNCOMMENT ini kalau mau lihat error asli
-    // die($e->getMessage());
-    die("Koneksi database gagal");
+    die("❌ ERROR: " . $e->getMessage());
 }
-
-
-echo json_encode([
-    'host' => env('DB_HOST'),
-    'port' => env('DB_PORT'),
-    'db'   => env('DB_NAME'),
-    'user' => env('DB_USER'),
-]);
-exit;
