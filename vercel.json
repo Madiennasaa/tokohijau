@@ -10,14 +10,16 @@
       "src": "/assets/(.*)",
       "dest": "/assets/$1"
     },
-    {
-      "src": "/api/(.*).php",
-      "dest": "/api/$1.php"
-    },
-    {
-      "src": "/(login|register|lihat_produk|keranjang|checkout|tentang|kontak|dashboard)",
-      "dest": "/api/$1.php"
-    },
+
+    { "src": "/login", "dest": "/api/login_form.php" },
+    { "src": "/register", "dest": "/api/register.php" },
+    { "src": "/dashboard", "dest": "/api/dashboard.php" },
+    { "src": "/keranjang", "dest": "/api/keranjang.php" },
+    { "src": "/checkout", "dest": "/api/checkout.php" },
+    { "src": "/tentang", "dest": "/api/tentang.php" },
+    { "src": "/kontak", "dest": "/api/kontak.php" },
+    { "src": "/lihat_produk", "dest": "/api/lihat_produk.php" },
+
     {
       "src": "/",
       "dest": "/api/index.php"
