@@ -30,7 +30,7 @@ try {
     $params = [];
 
     // Filter kategori
-    if(isset($_GET['kategori']) && !empty($_GET['kategori'])) {
+    if(isset($_GET['kategori']) && $_GET['kategori'] !== '') {
         $kategori_ids = explode(',', $_GET['kategori']);
         $kategori_ids = array_filter(array_map('intval', $kategori_ids));
         
@@ -42,12 +42,10 @@ try {
     }
 
     // Filter harga
-    if(isset($_GET['max_price']) && !empty($_GET['max_price'])) {
+    if(isset($_GET['max_price']) && $_GET['max_price'] !== '') {
         $max_price = (int)$_GET['max_price'];
-        if ($max_price > 0) {
-            $where_conditions[] = "harga_eceran <= ?";
-            $params[] = $max_price;
-        }
+        $where_conditions[] = "harga_eceran <= ?";
+        $params[] = $max_price;
     }
 
     // Build WHERE clause
