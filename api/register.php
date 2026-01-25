@@ -1,3 +1,83 @@
+<?php
+require_once 'koneksi.php'; // pastikan $pdo tersedia
+
+// Fungsi sanitasi input
+function sanitize($str) {
+    return htmlspecialchars(trim($str), ENT_QUOTES, 'UTF-8');
+}
+
+// Inisialisasi alert
+$alert = '';
+$alertClass = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    try {
+        // Ambil input
+        $nama       = sanitize($_POST['nama'] ?? '');
+        $email      = sanitize($_POST['email'] ?? '');
+        $password   = $_POST['password'] ?? '';
+        $confirm    = $_POST['confirm_password'] ?? '';
+        $no_telepon = sanitize($_POST['no_telepon'] ?? '');
+        $alamat     = sanitize($_POST['alamat'] ?? '');
+
+        // Validasi wajib
+        if ($nama === '' || $email === '' || $password === '') {
+            throw new Exception('Nama, email, dan password wajib diisi.');
+        }
+
+        // Validasi email
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new Exception('Email tidak valid.');
+        }
+
+        // Validasi password
+        if (strlen($password) < 6) {
+            throw new Exception('Password minimal 6 karakter.');
+        }
+        if ($password !== $confirm) {
+            throw new Exception('Password dan konfirmasi tidak sama.');
+        }
+
+        // Validasi no_telepon (opsional)
+        if ($no_telepon && !preg_match('/^\d{9,15}$/', $no_telepon)) {
+            throw new Exception('No. telepon tidak valid (9-15 digit).');
+        }
+
+        // Cek email unik
+        $stmt = $pdo->prepare("SELECT id_pengguna FROM pengguna WHERE email = ?");
+        $stmt->execute([$email]);
+        if ($stmt->fetch()) {
+            throw new Exception('Email sudah terdaftar.');
+        }
+
+        // Hash password
+        $password_hash = password_hash($password, PASSWORD_DEFAULT);
+
+        // Insert user
+        $stmt = $pdo->prepare("
+            INSERT INTO pengguna 
+            (nama, email, password, no_telepon, alamat, role, status, tanggal_daftar)
+            VALUES (?, ?, ?, ?, ?, 'user', 'aktif', NOW())
+        ");
+        $stmt->execute([
+            $nama,
+            $email,
+            $password_hash,
+            $no_telepon,
+            $alamat
+        ]);
+
+        // Registrasi sukses → redirect ke login
+        header('Location: login.php?registered=1');
+        exit;
+
+    } catch (Throwable $e) {
+        $alert = $e->getMessage();
+        $alertClass = 'danger';
+    }
+}
+?>
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -531,10 +611,18 @@
             </div>
             
             <!-- Alert Messages -->
-            <div id="alertContainer"></div>
+            <div id="alertContainer">
+                <?php if ($alert): ?>
+                    <div class="alert alert-<?= $alertClass ?> alert-dismissible fade show" role="alert">
+                        <i class="fas <?= $alertClass === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle' ?> me-2"></i>
+                        <?= $alert ?>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                <?php endif; ?>
+            </div>
 
             <!-- Register Form -->
-            <form id="registerForm" method="POST" novalidate>
+            <form id="registerForm" method="POST" action="">
                 <div class="row">
                     <div class="col-md-4 mb-3">
                         <label for="nama" class="form-label">
@@ -632,22 +720,11 @@
     <script>
         // Form validation
         document.getElementById('registerForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            if (validateForm()) {
-                showLoadingOverlay();
-                
-                setTimeout(() => {
-                    hideLoadingOverlay();
-                    showAlert('🎉 Registrasi berhasil! Silakan login.', 'success');
-                    
-                    setTimeout(() => {
-                        this.reset();
-                        clearValidationStates();
-                    }, 2000);
-                }, 1500);
-            } else {
+            if (!validateForm()) {
+                e.preventDefault();
                 showAlert('⚠️ Mohon lengkapi semua field dengan benar.', 'danger');
+            } else {
+                showLoadingOverlay(); // muncul loading
             }
         });
 

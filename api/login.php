@@ -1,50 +1,63 @@
 <?php
-session_start();
 require_once __DIR__ . '/koneksi.php';
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    redirect('/login');
+// Pastikan session aktif
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
 
-$email    = sanitize($_POST['email'] ?? '');
+// Hanya terima POST
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header('Location: /login');
+    exit;
+}
+
+$email    = trim($_POST['email'] ?? '');
 $password = $_POST['password'] ?? '';
 
-if (!$email || !$password) {
-    redirect('/login?error=empty');
+// ================= VALIDASI =================
+if ($email === '' || $password === '') {
+    header('Location: /login?error=empty');
+    exit;
 }
 
-// ambil user berdasarkan email
-$sql = "SELECT * FROM pengguna WHERE email = ?";
-$stmt = $conn->prepare($sql);
+// ================= AMBIL USER =================
+$stmt = $conn->prepare("SELECT * FROM pengguna WHERE email = ? LIMIT 1");
 $stmt->bind_param("s", $email);
 $stmt->execute();
+
 $result = $stmt->get_result();
 
-if (!$result || $result->num_rows !== 1) {
-    redirect('/login?error=invalid');
+if ($result->num_rows !== 1) {
+    header('Location: /login?error=invalid');
+    exit;
 }
 
 $user = $result->fetch_assoc();
+$stmt->close();
 
-// verifikasi password
-if (!password_verify($password, $user['password'])) {
-    redirect('/login?error=invalid');
-}
-
-// cek status
+// ================= CEK STATUS =================
 if ($user['status'] !== 'aktif') {
-    redirect('/login?error=inactive');
+    header('Location: /login?error=inactive');
+    exit;
 }
 
-// set session
+// ================= CEK PASSWORD =================
+if (!password_verify($password, $user['password'])) {
+    header('Location: /login?error=invalid');
+    exit;
+}
+
+// ================= LOGIN SUKSES =================
 $_SESSION['user_id'] = $user['id_pengguna'];
 $_SESSION['nama']    = $user['nama'];
 $_SESSION['email']   = $user['email'];
 $_SESSION['role']    = $user['role'];
 
-// optional: update last login (JANGAN tanggal_daftar)
-$conn->query(
-    "UPDATE pengguna SET last_login = NOW() WHERE id_pengguna = {$user['id_pengguna']}"
-);
+// Optional: update last login
+$user_id = (int) $user['id_pengguna'];
+$conn->query("UPDATE pengguna SET tanggal_login = NOW() WHERE id_pengguna = $user_id");
 
-redirect('/dashboard');
+// ================= REDIRECT =================
+header('Location: /dashboard');
+exit;
