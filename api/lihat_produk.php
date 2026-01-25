@@ -28,12 +28,6 @@ try {
     $count_stmt->execute($params);
     $total_items = (int) $count_stmt->fetchColumn();
 
-    // Hitung total halaman
-    $total_pages = ceil($total_items / $items_per_page);
-
-    // Definisikan current_page agar konsisten dengan template Anda
-    $current_page = $page;
-
     // ===== PAGINATION =====
     $items_per_page = 6;
     $page = max(1, (int)($_GET['page'] ?? 1));
