@@ -460,7 +460,7 @@ $user_role = $is_logged_in ? $_SESSION['role'] : 'guest';
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark navbar-modern fixed-top">
         <div class="container">
-            <a class="navbar-brand" href="<?= $is_logged_in ? 'dashboard.php' : 'index.php'; ?>">
+            <a class="navbar-brand" href="<?= $is_logged_in ? '/dashboard' : '/'; ?>">
                 <i class="fas fa-seedling me-2"></i>Toko Hijau
             </a>
 
@@ -478,28 +478,27 @@ $user_role = $is_logged_in ? $_SESSION['role'] : 'guest';
 
                     <!-- BERANDA -->
                     <li class="nav-item">
-                        <a class="nav-link" href="<?= $is_logged_in ? 'dashboard.php' : 'index.php'; ?>">
+                        <a class="nav-link" href="<?= $is_logged_in ? '/dashboard' : '/'; ?>">
                             <i class="fas fa-home me-1"></i> Beranda
                         </a>
                     </li>
 
                     <!-- PRODUK -->
                     <li class="nav-item">
-                        <a class="nav-link active" href="lihat_produk.php">
+                        <a class="nav-link active" href="/lihat_produk">
                             <i class="fas fa-store me-1"></i> Produk
                         </a>
                     </li>
 
                     <?php if ($is_logged_in): ?>
-                        <!-- USER -->
                         <li class="nav-item">
-                            <a class="nav-link" href="keranjang.php">
+                            <a class="nav-link" href="/keranjang">
                                 <i class="fas fa-shopping-cart me-1"></i> Keranjang
                             </a>
                         </li>
 
                         <li class="nav-item">
-                            <a class="nav-link" href="pesanan.php">
+                            <a class="nav-link" href="/pesanan">
                                 <i class="fas fa-clipboard-list me-1"></i> Pesanan
                             </a>
                         </li>
@@ -517,29 +516,27 @@ $user_role = $is_logged_in ? $_SESSION['role'] : 'guest';
 
                             <ul class="dropdown-menu dropdown-menu-end">
                                 <li>
-                                    <a class="dropdown-item" href="logout.php">
+                                    <a class="dropdown-item" href="/logout">
                                         <i class="fas fa-sign-out-alt me-1"></i> Logout
                                     </a>
                                 </li>
                             </ul>
                         </li>
-
                     <?php else: ?>
-                        <!-- GUEST -->
                         <li class="nav-item">
-                            <a class="nav-link" href="tentang.php">
+                            <a class="nav-link" href="/tentang">
                                 <i class="fas fa-info-circle me-1"></i> Tentang
                             </a>
                         </li>
 
                         <li class="nav-item">
-                            <a class="nav-link" href="kontak.php">
+                            <a class="nav-link" href="/kontak">
                                 <i class="fas fa-phone me-1"></i> Kontak
                             </a>
                         </li>
 
                         <li class="nav-item ms-3">
-                            <a href="login.php" class="btn btn-login">
+                            <a href="/login" class="btn btn-login">
                                 <i class="fas fa-sign-in-alt me-1"></i> Masuk
                             </a>
                         </li>
