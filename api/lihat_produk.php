@@ -1,5 +1,4 @@
 <?php
-// Pastikan file koneksi.php Anda sudah menggunakan PDO
 include 'koneksi.php';
 
 // Pagination settings
@@ -7,51 +6,52 @@ $items_per_page = 6;
 $current_page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 if ($current_page < 1) $current_page = 1;
 
-// Hitung offset
+// Hitung offset untuk query
 $offset = ($current_page - 1) * $items_per_page;
 
-// --- Handle Filters & Query Construction ---
+// Query untuk menghitung total produk
+$total_items_query = "SELECT COUNT(*) as total FROM barang";
+$total_items_stmt = $pdo->query($total_items_query);
+$total_items = $total_items_stmt->fetch()['total'];
+
+// Hitung total halaman
+$total_pages = ceil($total_items / $items_per_page);
+
+// Pastikan current_page tidak melebihi total_pages
+if ($current_page > $total_pages && $total_pages > 0) {
+    $current_page = $total_pages;
+    $offset = ($current_page - 1) * $items_per_page;
+}
+
+// Handle filters
+$kategori_filter = "";
+$harga_filter = "";
 $params = [];
-$where_clauses = [];
 
 // Filter kategori
-if(isset($_GET['kategori']) && !empty($_GET['kategori'])) {
+if(isset($_GET['kategori'])) {
     $kategori_ids = explode(',', $_GET['kategori']);
     $kategori_ids = array_map('intval', $kategori_ids);
-    
-    // Membuat placeholder (?) sebanyak jumlah ID kategori
-    $placeholders = implode(',', array_fill(0, count($kategori_ids), '?'));
-    $where_clauses[] = "id_kategori IN ($placeholders)";
+    $placeholders = str_repeat('?,', count($kategori_ids) - 1) . '?';
+    $kategori_filter = " WHERE id_kategori IN ($placeholders)";
     $params = array_merge($params, $kategori_ids);
 }
 
 // Filter harga
 if(isset($_GET['max_price'])) {
     $max_price = (int)$_GET['max_price'];
-    $where_clauses[] = "harga_eceran <= ?";
+    $harga_filter = $kategori_filter ? " AND harga_eceran <= ?" : " WHERE harga_eceran <= ?";
     $params[] = $max_price;
 }
 
-// Gabungkan WHERE clause
-$where_sql = !empty($where_clauses) ? " WHERE " . implode(" AND ", $where_clauses) : "";
+// Query produk dengan filter dan pagination
+$products_query = "SELECT * FROM barang $kategori_filter $harga_filter LIMIT ?, ?";
+$params[] = $offset;
+$params[] = $items_per_page;
 
-// --- 1. Hitung Total Produk (PDO) ---
-$total_query = "SELECT COUNT(*) FROM barang" . $where_sql;
-$stmt_total = $conn->prepare($total_query);
-$stmt_total->execute($params);
-$total_items = $stmt_total->fetchColumn();
-
-// Hitung total halaman
-$total_pages = ceil($total_items / $items_per_page);
-if ($current_page > $total_pages && $total_pages > 0) {
-    $current_page = $total_pages;
-}
-
-// --- 2. Ambil Data Produk (PDO) ---
-$products_query = "SELECT * FROM barang $where_sql LIMIT $items_per_page OFFSET $offset";
-$stmt_products = $conn->prepare($products_query);
-$stmt_products->execute($params);
-$products = $stmt_products->fetchAll(PDO::FETCH_ASSOC);
+$products_stmt = $pdo->prepare($products_query);
+$products_stmt->execute($params);
+$products = $products_stmt->fetchAll();
 
 // Cek status login
 $is_logged_in = isset($_SESSION['user_id']);
@@ -396,6 +396,11 @@ $user_role = $is_logged_in ? $_SESSION['role'] : 'guest';
             }
         }
 
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .hero-title {
@@ -536,22 +541,27 @@ $user_role = $is_logged_in ? $_SESSION['role'] : 'guest';
         <?php endif; ?>
 
         <?php if(isset($_GET['kategori']) || isset($_GET['max_price'])): ?>
-        <div class="alert alert-success alert-dismissible fade show">
+        <div class="alert filter-active alert-dismissible fade show">
             <i class="fas fa-filter me-2"></i> <strong>Filter aktif:</strong> 
             <?php 
             if(isset($_GET['kategori'])) {
-                $ids = explode(',', $_GET['kategori']);
-                $placeholders = implode(',', array_fill(0, count($ids), '?'));
-                $stmt_kat = $conn->prepare("SELECT nama_kategori FROM kategori WHERE id_kategori IN ($placeholders)");
-                $stmt_kat->execute($ids);
-                $names = $stmt_kat->fetchAll(PDO::FETCH_COLUMN);
-                echo 'Kategori: ' . implode(', ', $names) . ' ';
+                $kategori_names = [];
+                $kategori_ids = explode(',', $_GET['kategori']);
+                foreach($kategori_ids as $id) {
+                    $stmt = $pdo->prepare("SELECT nama_kategori FROM kategori WHERE id_kategori = ?");
+                    $stmt->execute([(int)$id]);
+                    $kat = $stmt->fetch();
+                    if($kat) $kategori_names[] = $kat['nama_kategori'];
+                }
+                echo 'Kategori: '.implode(', ', $kategori_names).' ';
             }
             if(isset($_GET['max_price'])) {
-                echo 'Harga maks: Rp ' . number_format($_GET['max_price'], 0, ',', '.');
+                echo 'Harga maks: Rp '.number_format($_GET['max_price'], 0, ',', '.');
             }
             ?>
-            <a href="lihat_produk.php" class="btn-close float-end"></a>
+            <a href="lihat_produk.php" class="float-end text-decoration-none">
+                <i class="fas fa-times"></i> Hapus semua filter
+            </a>
         </div>
         <?php endif; ?>
 
@@ -565,9 +575,8 @@ $user_role = $is_logged_in ? $_SESSION['role'] : 'guest';
                     <div class="mb-4">
                         <h6><i class="fas fa-tags me-2"></i>Kategori</h6>
                         <?php
-                        // Menggunakan PDO untuk mengambil kategori
-                        $stmt_cat_list = $conn->query("SELECT * FROM kategori");
-                        while($cat = $stmt_cat_list->fetch(PDO::FETCH_ASSOC)):
+                        $categories = $pdo->query("SELECT * FROM kategori");
+                        while($cat = $categories->fetch()):
                         ?>
                         <div class="form-check mb-2">
                             <input class="form-check-input" type="checkbox" value="<?php echo $cat['id_kategori']; ?>" id="cat<?php echo $cat['id_kategori']; ?>"
@@ -586,15 +595,19 @@ $user_role = $is_logged_in ? $_SESSION['role'] : 'guest';
                                value="<?php echo isset($_GET['max_price']) ? (int)$_GET['max_price'] : 1000000; ?>">
                         <div class="d-flex justify-content-between mt-2">
                             <small class="text-muted">Rp 0</small>
-                            <small class="text-muted" id="priceValue">Rp <?php echo isset($_GET['max_price']) ? number_format($_GET['max_price'], 0, ',', '.') : '1.000.000'; ?>
+                            <small class="text-muted" id="priceValue">Rp <?php echo isset($_GET['max_price']) ? number_format($_GET['max_price'], 0, ',', '.') : '1.000.000'; ?></small>
                         </div>
                     </div>
                     
                     <!-- Tombol Filter -->
                     <div class="d-grid gap-2">
-                        <button class="btn btn-success" id="applyFilter">Terapkan Filter</button>
-                        <button class="btn btn-outline-secondary" id="resetFilter">Reset</button>
-                    </div>
+                        <button class="btn btn-success" id="applyFilter">
+                            <i class="fas fa-filter me-2"></i>Terapkan Filter
+                            <?php if(isset($_GET['kategori']) || isset($_GET['max_price'])): ?>
+                            <span class="badge bg-white text-success ms-2">Aktif</span>
+                            <?php endif; ?>
+                        </button>
+                        <button class="btn btn-outline-secondary" id="resetFilter">
                             <i class="fas fa-sync-alt me-2"></i>Reset Filter
                         </button>
                     </div>
@@ -646,11 +659,11 @@ $user_role = $is_logged_in ? $_SESSION['role'] : 'guest';
                             <div class="p-3 d-flex flex-column h-100">
                                 <div class="mb-2">
                                     <span class="badge badge-category"><?php 
-                                        // Ambil nama kategori via PDO
-                                        $stmt_k = $conn->prepare("SELECT nama_kategori FROM kategori WHERE id_kategori = ?");
-                                        $stmt_k->execute([$product['id_kategori']]);
-                                        echo htmlspecialchars($stmt_k->fetchColumn());
-                                        ?></span>
+                                        $stmt = $pdo->prepare("SELECT nama_kategori FROM kategori WHERE id_kategori = ?");
+                                        $stmt->execute([$product['id_kategori']]);
+                                        $kategori = $stmt->fetch();
+                                        echo htmlspecialchars($kategori['nama_kategori']);
+                                    ?></span>
                                 </div>
                                 <h5 class="fw-bold mb-2">
                                     <a href="detail_barang.php?id=<?php echo $product['id_barang']; ?>" class="text-decoration-none text-dark">
@@ -700,7 +713,7 @@ $user_role = $is_logged_in ? $_SESSION['role'] : 'guest';
                         for ($i = $start_page; $i <= $end_page; $i++): 
                         ?>
                             <li class="page-item <?php echo ($current_page == $i) ? 'active' : ''; ?>">
-                                                                <a class="page-link" href="?page=<?php echo $i; ?><?php echo isset($_GET['kategori']) ? '&kategori='.$_GET['kategori'] : ''; ?><?php echo isset($_GET['max_price']) ? '&max_price='.$_GET['max_price'] : ''; ?>">
+                                <a class="page-link" href="?page=<?php echo $i; ?><?php echo isset($_GET['kategori']) ? '&kategori='.$_GET['kategori'] : ''; ?><?php echo isset($_GET['max_price']) ? '&max_price='.$_GET['max_price'] : ''; ?>">
                                     <?php echo $i; ?>
                                 </a>
                             </li>
