@@ -24,8 +24,7 @@ if ($current_page > $total_pages && $total_pages > 0) {
 }
 
 // Handle filters
-$kategori_filter = "";
-$harga_filter = "";
+$where_conditions = [];
 $params = [];
 
 // Filter kategori
@@ -33,21 +32,25 @@ if(isset($_GET['kategori'])) {
     $kategori_ids = explode(',', $_GET['kategori']);
     $kategori_ids = array_map('intval', $kategori_ids);
     $placeholders = str_repeat('?,', count($kategori_ids) - 1) . '?';
-    $kategori_filter = " WHERE id_kategori IN ($placeholders)";
+    $where_conditions[] = "id_kategori IN ($placeholders)";
     $params = array_merge($params, $kategori_ids);
 }
 
 // Filter harga
 if(isset($_GET['max_price'])) {
     $max_price = (int)$_GET['max_price'];
-    $harga_filter = $kategori_filter ? " AND harga_eceran <= ?" : " WHERE harga_eceran <= ?";
+    $where_conditions[] = "harga_eceran <= ?";
     $params[] = $max_price;
 }
 
+// Build WHERE clause
+$where_clause = count($where_conditions) > 0 ? " WHERE " . implode(' AND ', $where_conditions) : "";
+
 // Query produk dengan filter dan pagination
-$products_query = "SELECT * FROM barang $kategori_filter $harga_filter LIMIT ?, ?";
-$params[] = $offset;
-$params[] = $items_per_page;
+// Karena LIMIT tidak support parameter binding di semua database, kita validasi sebagai integer
+$offset_safe = (int)$offset;
+$limit_safe = (int)$items_per_page;
+$products_query = "SELECT * FROM barang $where_clause LIMIT $offset_safe, $limit_safe";
 
 $products_stmt = $pdo->prepare($products_query);
 $products_stmt->execute($params);
@@ -546,8 +549,8 @@ $user_role = $is_logged_in ? $_SESSION['role'] : 'guest';
             <?php 
             if(isset($_GET['kategori'])) {
                 $kategori_names = [];
-                $kategori_ids = explode(',', $_GET['kategori']);
-                foreach($kategori_ids as $id) {
+                $kategori_ids_display = explode(',', $_GET['kategori']);
+                foreach($kategori_ids_display as $id) {
                     $stmt = $pdo->prepare("SELECT nama_kategori FROM kategori WHERE id_kategori = ?");
                     $stmt->execute([(int)$id]);
                     $kat = $stmt->fetch();
@@ -556,7 +559,7 @@ $user_role = $is_logged_in ? $_SESSION['role'] : 'guest';
                 echo 'Kategori: '.implode(', ', $kategori_names).' ';
             }
             if(isset($_GET['max_price'])) {
-                echo 'Harga maks: Rp '.number_format($_GET['max_price'], 0, ',', '.');
+                echo 'Harga maks: Rp '.number_format((int)$_GET['max_price'], 0, ',', '.');
             }
             ?>
             <a href="lihat_produk.php" class="float-end text-decoration-none">
