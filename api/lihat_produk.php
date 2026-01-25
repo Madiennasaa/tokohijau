@@ -3,74 +3,47 @@ include 'koneksi.php';
 
 // Error handling untuk debugging
 try {
-    // Handle filters
-    $where_conditions = [];
+    // ===== FILTER =====
+    $where = [];
     $params = [];
-    
-    // Filter kategori
+
     if (!empty($_GET['kategori'])) {
-        $kategori_ids = array_filter(array_map('intval', explode(',', $_GET['kategori'])));
-        if ($kategori_ids) {
-            $placeholders = implode(',', array_fill(0, count($kategori_ids), '?'));
-            $where_conditions[] = "id_kategori IN ($placeholders)";
-            $params = array_merge($params, $kategori_ids);
+        $ids = array_filter(array_map('intval', explode(',', $_GET['kategori'])));
+        if ($ids) {
+            $where[] = "id_kategori IN (" . implode(',', array_fill(0, count($ids), '?')) . ")";
+            $params = array_merge($params, $ids);
         }
     }
-    
-    // Filter harga
+
     if (!empty($_GET['max_price'])) {
-        $where_conditions[] = "harga_eceran <= ?";
+        $where[] = "harga_eceran <= ?";
         $params[] = (int)$_GET['max_price'];
     }
-    
-    $where_clause = $where_conditions
-        ? 'WHERE ' . implode(' AND ', $where_conditions)
-        : '';
-        
-    // Pagination settings
+
+    $where_clause = $where ? 'WHERE ' . implode(' AND ', $where) : '';
+
+    // ===== PAGINATION =====
     $items_per_page = 6;
-    $current_page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-    if ($current_page < 1) $current_page = 1;
-    
-    // Hitung offset untuk query
-    $offset = ($current_page - 1) * $items_per_page;
+    $page = max(1, (int)($_GET['page'] ?? 1));
+    $offset = ($page - 1) * $items_per_page;
+    $offset = (int)$offset;
+    $items_per_page = (int)$items_per_page;
 
-    // Query untuk menghitung total produk
-    $total_items_query = "SELECT COUNT(*) as total FROM barang $where_clause";
-    $total_items_stmt = $pdo->prepare(
-    "SELECT COUNT(*) FROM barang $where_clause"
-    );
-    $total_items_stmt->execute($params);
-    $total_items = $total_items_stmt->fetchColumn();
-
-
-    // Hitung total halaman
-    $total_pages = ceil($total_items / $items_per_page);
-
-    // Pastikan current_page tidak melebihi total_pages
-    if ($current_page > $total_pages && $total_pages > 0) {
-        $current_page = $total_pages;
-        $offset = ($current_page - 1) * $items_per_page;
-    }
-
-
-
-    // Query produk dengan filter dan pagination
-    $offset_safe = (int)$offset;
-    $limit_safe = (int)$items_per_page;
-    $products_query = "SELECT * FROM barang $where_clause LIMIT $offset_safe, $limit_safe";
-
-    $products_stmt = $pdo->prepare(
-    "SELECT * FROM barang $where_clause LIMIT ?, ?"
-    );
-    $products_stmt->execute([...$params, $offset, $items_per_page]);
-    $products = $products_stmt->fetchAll();
-
-
+    // ===== QUERY PRODUK (FINAL) =====
+    $sql = "SELECT * FROM barang $where_clause LIMIT $offset, $items_per_page";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
+    $products = $stmt->fetchAll();
 } catch (PDOException $e) {
-    // Log error untuk debugging
-    error_log("Database Error: " . $e->getMessage());
-    die("Terjadi kesalahan saat memuat produk. Silakan coba lagi nanti.");
+    echo "<pre>";
+    echo "PDO ERROR:\n";
+    echo $e->getMessage();
+    echo "\n\nSQL:\n";
+    echo $sql ?? 'SQL TIDAK ADA';
+    echo "\n\nPARAMS:\n";
+    var_dump($params);
+    echo "</pre>";
+    exit;
 } catch (Exception $e) {
     error_log("General Error: " . $e->getMessage());
     die("Terjadi kesalahan. Silakan coba lagi nanti.");
