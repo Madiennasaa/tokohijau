@@ -440,68 +440,93 @@ $user_role = $is_logged_in ? $_SESSION['role'] : 'guest';
 </head>
 <body>
     <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-modern fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-modern fixed-top">
         <div class="container">
-            <a class="navbar-brand" href="<?php echo $is_logged_in ? 'dashboard.php' : 'index.php'; ?>">
+            <a class="navbar-brand" href="<?= $is_logged_in ? 'dashboard.php' : 'index.php'; ?>">
                 <i class="fas fa-seedling me-2"></i>Toko Hijau
             </a>
-            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+
+            <button class="navbar-toggler" type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#navbarNav"
+                    aria-controls="navbarNav"
+                    aria-expanded="false"
+                    aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
+
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-center">
-                    <?php if($is_logged_in): ?>
-                        <!-- User Menu -->
+
+                    <!-- BERANDA -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="<?= $is_logged_in ? 'dashboard.php' : 'index.php'; ?>">
+                            <i class="fas fa-home me-1"></i> Beranda
+                        </a>
+                    </li>
+
+                    <!-- PRODUK -->
+                    <li class="nav-item">
+                        <a class="nav-link active" href="lihat_produk.php">
+                            <i class="fas fa-store me-1"></i> Produk
+                        </a>
+                    </li>
+
+                    <?php if ($is_logged_in): ?>
+                        <!-- USER -->
                         <li class="nav-item">
-                            <a class="nav-link" href="<?php echo $is_logged_in ? 'dashboard.php' : 'index.php'; ?>">
-                                <i class="fas fa-home me-1"></i> Beranda
+                            <a class="nav-link" href="keranjang.php">
+                                <i class="fas fa-shopping-cart me-1"></i> Keranjang
                             </a>
                         </li>
+
                         <li class="nav-item">
-                            <a class="nav-link active" href="lihat_produk.php"><i class="fas fa-store me-1"></i> Produk</a>
+                            <a class="nav-link" href="pesanan.php">
+                                <i class="fas fa-clipboard-list me-1"></i> Pesanan
+                            </a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="keranjang.php"><i class="fas fa-shopping-cart me-1"></i> Keranjang</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="pesanan.php"><i class="fas fa-clipboard-list me-1"></i> Pesanan</a>
-                        </li>
+
                         <li class="nav-item dropdown ms-3">
-                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-user me-1"></i> <?php echo htmlspecialchars($_SESSION['nama']); ?>
+                            <a class="nav-link dropdown-toggle"
+                            href="#"
+                            id="navbarDropdown"
+                            role="button"
+                            data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                                <i class="fas fa-user me-1"></i>
+                                <?= htmlspecialchars($_SESSION['nama'] ?? 'User'); ?>
                             </a>
+
                             <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" href="logout.php"><i class="fas fa-sign-out-alt me-1"></i> Logout</a></li>
+                                <li>
+                                    <a class="dropdown-item" href="logout.php">
+                                        <i class="fas fa-sign-out-alt me-1"></i> Logout
+                                    </a>
+                                </li>
                             </ul>
                         </li>
+
                     <?php else: ?>
-                        <!-- Guest Menu -->
-                        <li class="nav-item">
-                            <a class="nav-link" href="<?php echo $is_logged_in ? 'dashboard.php' : 'index.php'; ?>">
-                                <i class="fas fa-home me-1"></i> Beranda
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link active" href="lihat_produk.php">
-                                <i class="fas fa-store me-1"></i> Produk
-                            </a>
-                        </li>
+                        <!-- GUEST -->
                         <li class="nav-item">
                             <a class="nav-link" href="tentang.php">
                                 <i class="fas fa-info-circle me-1"></i> Tentang
                             </a>
                         </li>
+
                         <li class="nav-item">
                             <a class="nav-link" href="kontak.php">
                                 <i class="fas fa-phone me-1"></i> Kontak
                             </a>
                         </li>
+
                         <li class="nav-item ms-3">
                             <a href="login.php" class="btn btn-login">
                                 <i class="fas fa-sign-in-alt me-1"></i> Masuk
                             </a>
                         </li>
                     <?php endif; ?>
+
                 </ul>
             </div>
         </div>
