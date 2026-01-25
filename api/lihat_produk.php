@@ -12,8 +12,9 @@ try {
     $offset = ($current_page - 1) * $items_per_page;
 
     // Query untuk menghitung total produk
-    $total_items_query = "SELECT COUNT(*) as total FROM barang";
-    $total_items_stmt = $pdo->query($total_items_query);
+    $total_items_query = "SELECT COUNT(*) as total FROM barang $where_clause";
+    $total_items_stmt = $pdo->prepare($total_items_query);
+    $total_items_stmt->execute($params);
     $total_items = $total_items_stmt->fetch()['total'];
 
     // Hitung total halaman
@@ -906,7 +907,7 @@ $user_role = $is_logged_in ? $_SESSION['role'] : 'guest';
                 let queryParams = [];
                 
                 if (selectedCategories.length > 0) {
-                    queryParams.push('kategori=' + encodeURIComponent(selectedCategories.join(','))));
+                    queryParams.push('kategori=' + encodeURIComponent(selectedCategories.join(',')));
                 }
                 
                 if (maxPrice < 1000000) {
