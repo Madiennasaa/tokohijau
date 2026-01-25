@@ -15,7 +15,7 @@
     { "src": "/checkout", "dest": "/api/checkout.php" },
     { "src": "/tentang", "dest": "/api/tentang.php" },
     { "src": "/kontak", "dest": "/api/kontak.php" },
-    { "src": "/lihat_produk", "dest": "/api/lihat_produk.php" },
+    { "src": "/lihat_produk(.*)", "dest": "/api/lihat_produk.php$1" },
 
     { "src": "/", "dest": "/api/index.php" }
   ]
