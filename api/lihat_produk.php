@@ -3,11 +3,35 @@ include 'koneksi.php';
 
 // Error handling untuk debugging
 try {
+    // Handle filters
+    $where_conditions = [];
+    $params = [];
+    
+    // Filter kategori
+    if (!empty($_GET['kategori'])) {
+        $kategori_ids = array_filter(array_map('intval', explode(',', $_GET['kategori'])));
+        if ($kategori_ids) {
+            $placeholders = implode(',', array_fill(0, count($kategori_ids), '?'));
+            $where_conditions[] = "id_kategori IN ($placeholders)";
+            $params = array_merge($params, $kategori_ids);
+        }
+    }
+    
+    // Filter harga
+    if (!empty($_GET['max_price'])) {
+        $where_conditions[] = "harga_eceran <= ?";
+        $params[] = (int)$_GET['max_price'];
+    }
+    
+    $where_clause = $where_conditions
+        ? 'WHERE ' . implode(' AND ', $where_conditions)
+        : '';
+        
     // Pagination settings
     $items_per_page = 6;
     $current_page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
     if ($current_page < 1) $current_page = 1;
-
+    
     // Hitung offset untuk query
     $offset = ($current_page - 1) * $items_per_page;
 
@@ -29,29 +53,6 @@ try {
         $offset = ($current_page - 1) * $items_per_page;
     }
 
-    // Handle filters
-    $where_conditions = [];
-    $params = [];
-
-    // Filter kategori
-    if (!empty($_GET['kategori'])) {
-        $kategori_ids = array_filter(array_map('intval', explode(',', $_GET['kategori'])));
-        if ($kategori_ids) {
-            $placeholders = implode(',', array_fill(0, count($kategori_ids), '?'));
-            $where_conditions[] = "id_kategori IN ($placeholders)";
-            $params = array_merge($params, $kategori_ids);
-        }
-    }
-
-    // Filter harga
-    if (!empty($_GET['max_price'])) {
-        $where_conditions[] = "harga_eceran <= ?";
-        $params[] = (int)$_GET['max_price'];
-    }
-
-    $where_clause = $where_conditions
-        ? 'WHERE ' . implode(' AND ', $where_conditions)
-        : '';
 
 
     // Query produk dengan filter dan pagination
