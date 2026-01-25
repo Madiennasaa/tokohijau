@@ -1,60 +1,75 @@
 <?php
 include 'koneksi.php';
 
-// Pagination settings
-$items_per_page = 6;
-$current_page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-if ($current_page < 1) $current_page = 1;
+// Error handling untuk debugging
+try {
+    // Pagination settings
+    $items_per_page = 6;
+    $current_page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+    if ($current_page < 1) $current_page = 1;
 
-// Hitung offset untuk query
-$offset = ($current_page - 1) * $items_per_page;
-
-// Query untuk menghitung total produk
-$total_items_query = "SELECT COUNT(*) as total FROM barang";
-$total_items_stmt = $pdo->query($total_items_query);
-$total_items = $total_items_stmt->fetch()['total'];
-
-// Hitung total halaman
-$total_pages = ceil($total_items / $items_per_page);
-
-// Pastikan current_page tidak melebihi total_pages
-if ($current_page > $total_pages && $total_pages > 0) {
-    $current_page = $total_pages;
+    // Hitung offset untuk query
     $offset = ($current_page - 1) * $items_per_page;
+
+    // Query untuk menghitung total produk
+    $total_items_query = "SELECT COUNT(*) as total FROM barang";
+    $total_items_stmt = $pdo->query($total_items_query);
+    $total_items = $total_items_stmt->fetch()['total'];
+
+    // Hitung total halaman
+    $total_pages = ceil($total_items / $items_per_page);
+
+    // Pastikan current_page tidak melebihi total_pages
+    if ($current_page > $total_pages && $total_pages > 0) {
+        $current_page = $total_pages;
+        $offset = ($current_page - 1) * $items_per_page;
+    }
+
+    // Handle filters
+    $where_conditions = [];
+    $params = [];
+
+    // Filter kategori
+    if(isset($_GET['kategori']) && !empty($_GET['kategori'])) {
+        $kategori_ids = explode(',', $_GET['kategori']);
+        $kategori_ids = array_filter(array_map('intval', $kategori_ids));
+        
+        if (!empty($kategori_ids)) {
+            $placeholders = str_repeat('?,', count($kategori_ids) - 1) . '?';
+            $where_conditions[] = "id_kategori IN ($placeholders)";
+            $params = array_merge($params, $kategori_ids);
+        }
+    }
+
+    // Filter harga
+    if(isset($_GET['max_price']) && !empty($_GET['max_price'])) {
+        $max_price = (int)$_GET['max_price'];
+        if ($max_price > 0) {
+            $where_conditions[] = "harga_eceran <= ?";
+            $params[] = $max_price;
+        }
+    }
+
+    // Build WHERE clause
+    $where_clause = count($where_conditions) > 0 ? " WHERE " . implode(' AND ', $where_conditions) : "";
+
+    // Query produk dengan filter dan pagination
+    $offset_safe = (int)$offset;
+    $limit_safe = (int)$items_per_page;
+    $products_query = "SELECT * FROM barang $where_clause LIMIT $offset_safe, $limit_safe";
+
+    $products_stmt = $pdo->prepare($products_query);
+    $products_stmt->execute($params);
+    $products = $products_stmt->fetchAll();
+
+} catch (PDOException $e) {
+    // Log error untuk debugging
+    error_log("Database Error: " . $e->getMessage());
+    die("Terjadi kesalahan saat memuat produk. Silakan coba lagi nanti.");
+} catch (Exception $e) {
+    error_log("General Error: " . $e->getMessage());
+    die("Terjadi kesalahan. Silakan coba lagi nanti.");
 }
-
-// Handle filters
-$where_conditions = [];
-$params = [];
-
-// Filter kategori
-if(isset($_GET['kategori'])) {
-    $kategori_ids = explode(',', $_GET['kategori']);
-    $kategori_ids = array_map('intval', $kategori_ids);
-    $placeholders = str_repeat('?,', count($kategori_ids) - 1) . '?';
-    $where_conditions[] = "id_kategori IN ($placeholders)";
-    $params = array_merge($params, $kategori_ids);
-}
-
-// Filter harga
-if(isset($_GET['max_price'])) {
-    $max_price = (int)$_GET['max_price'];
-    $where_conditions[] = "harga_eceran <= ?";
-    $params[] = $max_price;
-}
-
-// Build WHERE clause
-$where_clause = count($where_conditions) > 0 ? " WHERE " . implode(' AND ', $where_conditions) : "";
-
-// Query produk dengan filter dan pagination
-// Karena LIMIT tidak support parameter binding di semua database, kita validasi sebagai integer
-$offset_safe = (int)$offset;
-$limit_safe = (int)$items_per_page;
-$products_query = "SELECT * FROM barang $where_clause LIMIT $offset_safe, $limit_safe";
-
-$products_stmt = $pdo->prepare($products_query);
-$products_stmt->execute($params);
-$products = $products_stmt->fetchAll();
 
 // Cek status login
 $is_logged_in = isset($_SESSION['user_id']);
@@ -893,11 +908,11 @@ $user_role = $is_logged_in ? $_SESSION['role'] : 'guest';
                 let queryParams = [];
                 
                 if (selectedCategories.length > 0) {
-                    queryParams.push('kategori=' + selectedCategories.join(','));
+                    queryParams.push('kategori=' + encodeURIComponent(selectedCategories.join(','))));
                 }
                 
                 if (maxPrice < 1000000) {
-                    queryParams.push('max_price=' + maxPrice);
+                    queryParams.push('max_price=' + encodeURIComponent(maxPrice));
                 }
                 
                 window.location.href = 'lihat_produk.php' + (queryParams.length > 0 ? '?' + queryParams.join('&') : '');
