@@ -22,14 +22,16 @@
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
-            min-height: 100vh;
+            min-height: 100svh; 
+            overflow-y: auto;
+            overflow-x: hidden;
+            align-items: flex-start;
             display: flex;
-            align-items: center;
             justify-content: center;
             position: relative;
-            overflow: hidden;
             margin: 0;
-            padding: 1rem;
+            padding-top: 2rem;
+            padding-bottom: 2rem;
         }
 
         /* Background Decorations */
@@ -111,7 +113,8 @@
             border: 1px solid rgba(34, 197, 94, 0.1);
             transition: all 0.3s ease;
             position: relative;
-            overflow: hidden;
+            max-height: calc(100svh - 4rem);
+            overflow-y: auto;
             width: 100%;
         }
 
