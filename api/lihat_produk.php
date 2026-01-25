@@ -1,6 +1,7 @@
 <?php
 include 'koneksi.php';
 
+// Error handling untuk debugging
 try {
     // ===== FILTER =====
     $where = [];
@@ -21,36 +22,40 @@ try {
 
     $where_clause = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 
-    // ===== TOTAL DATA =====
+    // ===== TOTAL DATA (WAJIB BUAT PAGINATION) =====
     $count_sql = "SELECT COUNT(*) FROM barang $where_clause";
     $count_stmt = $pdo->prepare($count_sql);
     $count_stmt->execute($params);
-    $total_items = (int)$count_stmt->fetchColumn();
+    $total_items = (int) $count_stmt->fetchColumn();
 
     // ===== PAGINATION =====
     $items_per_page = 6;
     $page = max(1, (int)($_GET['page'] ?? 1));
-    $total_pages = max(1, ceil($total_items / $items_per_page));
-    $page = min($page, $total_pages);
-    $offset = (int)(($page - 1) * $items_per_page);
+    $offset = ($page - 1) * $items_per_page;
+    $offset = (int)$offset;
+    $items_per_page = (int)$items_per_page;
 
-    // ===== QUERY PRODUK =====
+    // ===== QUERY PRODUK (FINAL) =====
     $sql = "SELECT * FROM barang $where_clause LIMIT $offset, $items_per_page";
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
     $products = $stmt->fetchAll();
-
 } catch (PDOException $e) {
     echo "<pre>";
-    echo "PDO ERROR:\n" . $e->getMessage();
-    echo "\n\nSQL:\n" . ($sql ?? 'SQL TIDAK ADA');
+    echo "PDO ERROR:\n";
+    echo $e->getMessage();
+    echo "\n\nSQL:\n";
+    echo $sql ?? 'SQL TIDAK ADA';
     echo "\n\nPARAMS:\n";
     var_dump($params);
     echo "</pre>";
     exit;
+} catch (Exception $e) {
+    error_log("General Error: " . $e->getMessage());
+    die("Terjadi kesalahan. Silakan coba lagi nanti.");
 }
 
-// ===== LOGIN STATUS =====
+// Cek status login
 $is_logged_in = isset($_SESSION['user_id']);
 $user_role = $is_logged_in ? $_SESSION['role'] : 'guest';
 ?>
