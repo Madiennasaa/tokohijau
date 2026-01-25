@@ -525,7 +525,7 @@
                 </div>
                 
                 <p class="mb-2">Belum punya akun? <a href="register.php">Daftar sekarang</a></p>
-                <a href="index.php" class="text-muted">
+                <a href="/" class="text-muted">
                     <i class="fas fa-arrow-left me-1"></i>
                     Kembali ke Beranda
                 </a>
