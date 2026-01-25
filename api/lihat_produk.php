@@ -22,6 +22,12 @@ try {
 
     $where_clause = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 
+    // ===== TOTAL DATA (WAJIB BUAT PAGINATION) =====
+    $count_sql = "SELECT COUNT(*) FROM barang $where_clause";
+    $count_stmt = $pdo->prepare($count_sql);
+    $count_stmt->execute($params);
+    $total_items = (int) $count_stmt->fetchColumn();
+
     // ===== PAGINATION =====
     $items_per_page = 6;
     $page = max(1, (int)($_GET['page'] ?? 1));
