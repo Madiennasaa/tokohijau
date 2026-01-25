@@ -22,16 +22,14 @@
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
-            min-height: 100svh; 
-            overflow-y: auto;
-            overflow-x: hidden;
-            align-items: flex-start;
+            height: 100vh;
+            overflow: hidden;
             display: flex;
+            align-items: center;
             justify-content: center;
             position: relative;
             margin: 0;
-            padding-top: 2rem;
-            padding-bottom: 2rem;
+            padding: 0;
         }
 
         /* Background Decorations */
@@ -102,20 +100,18 @@
             position: relative;
             z-index: 10;
             width: 100%;
-            max-width: 450px;
+            max-width: 420px;
+            padding: 0 1rem;
         }
 
         .login-card {
             background: white;
             border-radius: 20px;
-            padding: 2rem 2rem;
+            padding: 1.5rem 1.75rem;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
             border: 1px solid rgba(34, 197, 94, 0.1);
             transition: all 0.3s ease;
             position: relative;
-            max-height: calc(100svh - 4rem);
-            overflow-y: auto;
-            width: 100%;
         }
 
         .login-card::before {
@@ -136,37 +132,37 @@
         /* Header Section */
         .login-header {
             text-align: center;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1.25rem;
         }
 
         .brand-icon {
-            width: 60px;
-            height: 60px;
+            width: 50px;
+            height: 50px;
             background: var(--gradient-1);
             border-radius: 15px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 1rem;
-            font-size: 1.5rem;
+            margin: 0 auto 0.75rem;
+            font-size: 1.3rem;
             color: white;
             box-shadow: 0 8px 25px rgba(34, 197, 94, 0.3);
             animation: pulse 2s infinite;
         }
 
         .brand-title {
-            font-size: 1.6rem;
+            font-size: 1.4rem;
             font-weight: 700;
             background: var(--gradient-1);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.25rem;
         }
 
         .brand-subtitle {
             color: #6b7280;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             margin-bottom: 0;
         }
 
@@ -174,10 +170,10 @@
         .alert {
             border: none;
             border-radius: 12px;
-            padding: 0.75rem 1rem;
-            margin-bottom: 1rem;
+            padding: 0.6rem 0.9rem;
+            margin-bottom: 0.9rem;
             font-weight: 500;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
 
         .alert-danger {
@@ -196,22 +192,23 @@
         .form-label {
             font-weight: 600;
             color: #374151;
-            margin-bottom: 0.4rem;
+            margin-bottom: 0.35rem;
             display: flex;
             align-items: center;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
 
         .form-label i {
-            margin-right: 0.5rem;
+            margin-right: 0.4rem;
             color: var(--primary-green);
+            font-size: 0.8rem;
         }
 
         .form-control {
             border: 2px solid #e5e7eb;
             border-radius: 12px;
-            padding: 0.6rem 0.9rem;
-            font-size: 0.95rem;
+            padding: 0.5rem 0.8rem;
+            font-size: 0.9rem;
             transition: all 0.3s ease;
             background: #fafafa;
         }
@@ -241,15 +238,15 @@
         .form-check-label {
             color: #374151;
             font-weight: 500;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
 
         .mb-3 {
-            margin-bottom: 1rem !important;
+            margin-bottom: 0.9rem !important;
         }
 
         .mb-4 {
-            margin-bottom: 1.2rem !important;
+            margin-bottom: 1rem !important;
         }
 
         /* Button Styles */
@@ -258,9 +255,9 @@
             border: none;
             color: white;
             font-weight: 600;
-            padding: 0.7rem 2rem;
+            padding: 0.6rem 1.75rem;
             border-radius: 12px;
-            font-size: 1rem;
+            font-size: 0.95rem;
             box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
             transition: all 0.3s ease;
             width: 100%;
@@ -296,7 +293,7 @@
         /* Links */
         .login-links {
             text-align: center;
-            margin-top: 1.2rem;
+            margin-top: 1rem;
         }
 
         .login-links a {
@@ -305,12 +302,11 @@
             font-weight: 500;
             transition: all 0.3s ease;
             position: relative;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
 
         .login-links a:hover {
             color: var(--dark-green);
-            transform: translateY(-1px);
         }
 
         .login-links a::after {
@@ -331,10 +327,16 @@
 
         .text-muted {
             color: #6b7280 !important;
+            font-size: 0.85rem;
         }
 
         .divider {
-            padding: 0 0 10px 0;
+            padding: 0 0 8px 0;
+            font-size: 0.85rem;
+        }
+
+        .mb-2 {
+            margin-bottom: 0.5rem !important;
         }
 
         /* Animations */
@@ -376,16 +378,12 @@
 
         /* Responsive */
         @media (max-width: 768px) {
-            body {
-                padding: 0.5rem;
-            }
-            
             .login-card {
-                padding: 1.5rem 1.5rem;
+                padding: 1.25rem 1.5rem;
             }
             
             .brand-title {
-                font-size: 1.4rem;
+                font-size: 1.3rem;
             }
 
             .floating-element {
@@ -399,13 +397,14 @@
 
         @media (max-height: 700px) {
             .brand-icon {
-                width: 50px;
-                height: 50px;
-                font-size: 1.2rem;
+                width: 45px;
+                height: 45px;
+                font-size: 1.1rem;
+                margin-bottom: 0.5rem;
             }
             
             .brand-title {
-                font-size: 1.4rem;
+                font-size: 1.3rem;
             }
             
             .login-header {
@@ -413,11 +412,15 @@
             }
             
             .form-control {
-                padding: 0.5rem 0.8rem;
+                padding: 0.45rem 0.75rem;
             }
             
             .btn-login {
-                padding: 0.6rem 1.5rem;
+                padding: 0.55rem 1.5rem;
+            }
+
+            .mb-3 {
+                margin-bottom: 0.75rem !important;
             }
         }
 
@@ -456,33 +459,7 @@
             </div>
             
             <!-- Alert Messages -->
-            <?php if(isset($_GET['error'])): ?>
-                <div class="alert alert-danger">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    <?php 
-                        switch($_GET['error']) {
-                            case 'invalid':
-                                echo 'Email atau password salah!';
-                                break;
-                            case 'empty':
-                                echo 'Semua field harus diisi!';
-                                break;
-                            case 'inactive':
-                                echo 'Akun Anda tidak aktif!';
-                                break;
-                            default:
-                                echo 'Terjadi kesalahan!';
-                        }
-                    ?>
-                </div>
-            <?php endif; ?>
-            
-            <?php if(isset($_GET['success'])): ?>
-                <div class="alert alert-success">
-                    <i class="fas fa-check-circle me-2"></i>
-                    Registrasi berhasil! Silakan login.
-                </div>
-            <?php endif; ?>
+            <div id="alertContainer"></div>
 
             <!-- Login Form -->
             <form action="login.php" method="POST" id="loginForm">
@@ -538,6 +515,40 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Simulate alerts for demo
+        const urlParams = new URLSearchParams(window.location.search);
+        const alertContainer = document.getElementById('alertContainer');
+        
+        if (urlParams.get('error')) {
+            let message = 'Terjadi kesalahan!';
+            switch(urlParams.get('error')) {
+                case 'invalid':
+                    message = 'Email atau password salah!';
+                    break;
+                case 'empty':
+                    message = 'Semua field harus diisi!';
+                    break;
+                case 'inactive':
+                    message = 'Akun Anda tidak aktif!';
+                    break;
+            }
+            alertContainer.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    ${message}
+                </div>
+            `;
+        }
+        
+        if (urlParams.get('success')) {
+            alertContainer.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i>
+                    Registrasi berhasil! Silakan login.
+                </div>
+            `;
+        }
+
         // Form submission with loading state
         document.getElementById('loginForm').addEventListener('submit', function(e) {
             const submitBtn = document.querySelector('.btn-login');
