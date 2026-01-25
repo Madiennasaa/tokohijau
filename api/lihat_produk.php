@@ -30,16 +30,32 @@ try {
 
     // ===== PAGINATION =====
     $items_per_page = 6;
-    $page = max(1, (int)($_GET['page'] ?? 1));
-    $offset = ($page - 1) * $items_per_page;
-    $offset = (int)$offset;
-    $items_per_page = (int)$items_per_page;
+    $current_page = max(1, (int)($_GET['page'] ?? 1));
+    
+    // Hitung total halaman
+    $total_pages = ($total_items > 0) ? ceil($total_items / $items_per_page) : 1;
+    
+    // Pastikan current_page tidak melebihi total_pages
+    if ($current_page > $total_pages) {
+        $current_page = $total_pages;
+    }
+    
+    $offset = ($current_page - 1) * $items_per_page;
+    
+    // Pastikan offset tidak negatif
+    if ($offset < 0) {
+        $offset = 0;
+    }
 
-    // ===== QUERY PRODUK (FINAL) =====
-    $sql = "SELECT * FROM barang $where_clause LIMIT $offset, $items_per_page";
+    // ===== QUERY PRODUK (FINAL) - FIXED: Gunakan placeholder untuk LIMIT =====
+    $sql = "SELECT * FROM barang $where_clause LIMIT ?, ?";
     $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
+    
+    // Bind parameters dengan type integer untuk LIMIT
+    $bind_params = array_merge($params, [$offset, $items_per_page]);
+    $stmt->execute($bind_params);
     $products = $stmt->fetchAll();
+    
 } catch (PDOException $e) {
     echo "<pre>";
     echo "PDO ERROR:\n";
@@ -47,7 +63,7 @@ try {
     echo "\n\nSQL:\n";
     echo $sql ?? 'SQL TIDAK ADA';
     echo "\n\nPARAMS:\n";
-    var_dump($params);
+    var_dump($params ?? []);
     echo "</pre>";
     exit;
 } catch (Exception $e) {
@@ -146,13 +162,13 @@ $user_role = $is_logged_in ? $_SESSION['role'] : 'guest';
             min-height: 100vh;
             background: linear-gradient(135deg, rgba(155, 244, 188, 0.9) 0%, rgba(93, 133, 95, 0.9) 100%),
                         url('https://static.vecteezy.com/system/resources/thumbnails/044/527/228/small_2x/ai-generated-farmer-in-a-hat-in-his-field-generative-ai-photo.jpg');
-             background-size: cover;
+            background-size: cover;
             background-position: center;
             background-attachment: fixed;
             display: flex;
             align-items: center;
             position: relative;
-            overflow: hidden
+            overflow: hidden;
         }
 
         .hero-content {
