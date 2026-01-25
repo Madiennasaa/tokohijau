@@ -46,14 +46,16 @@ try {
     if ($offset < 0) {
         $offset = 0;
     }
-
-    // ===== QUERY PRODUK (FINAL) - FIXED: Gunakan placeholder untuk LIMIT =====
-    $sql = "SELECT * FROM barang $where_clause LIMIT ?, ?";
-    $stmt = $pdo->prepare($sql);
     
-    // Bind parameters dengan type integer untuk LIMIT
-    $bind_params = array_merge($params, [$offset, $items_per_page]);
-    $stmt->execute($bind_params);
+    // Sanitize untuk keamanan (sudah dijamin integer)
+    $offset = (int)$offset;
+    $items_per_page = (int)$items_per_page;
+
+    // ===== QUERY PRODUK (FINAL) - TiDB compatible =====
+    // TiDB tidak support placeholder untuk LIMIT, jadi gunakan nilai langsung (sudah aman karena di-cast ke int)
+    $sql = "SELECT * FROM barang $where_clause LIMIT $offset, $items_per_page";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
     $products = $stmt->fetchAll();
     
 } catch (PDOException $e) {
