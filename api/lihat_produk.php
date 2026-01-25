@@ -53,7 +53,7 @@ try {
 // ===== LOGIN STATUS =====
 $is_logged_in = isset($_SESSION['user_id']);
 $user_role = $is_logged_in ? $_SESSION['role'] : 'guest';
-
+?>
  
 <!DOCTYPE html>
 <html lang="id">
