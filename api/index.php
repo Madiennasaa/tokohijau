@@ -1,9 +1,80 @@
+<?php
+include 'koneksi.php';
+
+// Error handling untuk debugging
+try {
+    // ===== FILTER =====
+    $where = [];
+    $params = [];
+
+    if (!empty($_GET['kategori'])) {
+        $ids = array_filter(array_map('intval', explode(',', $_GET['kategori'])));
+        if ($ids) {
+            $where[] = "id_kategori IN (" . implode(',', array_fill(0, count($ids), '?')) . ")";
+            $params = array_merge($params, $ids);
+        }
+    }
+
+    if (!empty($_GET['max_price'])) {
+        $where[] = "harga_eceran <= ?";
+        $params[] = (int)$_GET['max_price'];
+    }
+
+    $where_clause = $where ? 'WHERE ' . implode(' AND ', $where) : '';
+
+    // ===== TOTAL DATA (WAJIB BUAT PAGINATION) =====
+    $count_sql = "SELECT COUNT(*) FROM barang $where_clause";
+    $count_stmt = $pdo->prepare($count_sql);
+    $count_stmt->execute($params);
+    $total_items = (int) $count_stmt->fetchColumn();
+
+    // ===== PAGINATION =====
+    $items_per_page = 6;
+    $current_page = max(1, (int)($_GET['page'] ?? 1));
+    $total_pages = ceil($total_items / $items_per_page);
+    
+    // Pastikan current_page tidak melebihi total_pages
+    if ($current_page > $total_pages && $total_pages > 0) {
+        $current_page = $total_pages;
+    }
+    
+    $offset = ($current_page - 1) * $items_per_page;
+
+    // ===== QUERY PRODUK (FINAL) - FIXED: Gunakan placeholder untuk LIMIT =====
+    $sql = "SELECT * FROM barang $where_clause LIMIT ?, ?";
+    $stmt = $pdo->prepare($sql);
+    
+    // Bind parameters dengan type integer untuk LIMIT
+    $bind_params = array_merge($params, [$offset, $items_per_page]);
+    $stmt->execute($bind_params);
+    $products = $stmt->fetchAll();
+    
+} catch (PDOException $e) {
+    echo "<pre>";
+    echo "PDO ERROR:\n";
+    echo $e->getMessage();
+    echo "\n\nSQL:\n";
+    echo $sql ?? 'SQL TIDAK ADA';
+    echo "\n\nPARAMS:\n";
+    var_dump($params ?? []);
+    echo "</pre>";
+    exit;
+} catch (Exception $e) {
+    error_log("General Error: " . $e->getMessage());
+    die("Terjadi kesalahan. Silakan coba lagi nanti.");
+}
+
+// Cek status login
+$is_logged_in = isset($_SESSION['user_id']);
+$user_role = $is_logged_in ? $_SESSION['role'] : 'guest';
+?>
+ 
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Toko Hijau - Beranda</title>
+    <title>Toko Hijau - Produk</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -82,8 +153,8 @@
         /* Hero Section */
         .hero-section {
             min-height: 100vh;
-            background: linear-gradient(135deg, rgba(155, 244, 188, 0.9) 0%, rgba(93, 133, 95, 0.9) 100%), 
-                        url('https://images.unsplash.com/photo-1560493676-04071c5f467b?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80');
+            background: linear-gradient(135deg, rgba(155, 244, 188, 0.9) 0%, rgba(93, 133, 95, 0.9) 100%),
+                        url('https://static.vecteezy.com/system/resources/thumbnails/044/527/228/small_2x/ai-generated-farmer-in-a-hat-in-his-field-generative-ai-photo.jpg');
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
@@ -91,7 +162,6 @@
             align-items: center;
             position: relative;
             overflow: hidden;
-            padding-top: 80px; /* Space for fixed navbar */
         }
 
         .hero-content {
@@ -100,171 +170,44 @@
         }
 
         .hero-title {
-            font-size: clamp(2rem, 6vw, 3.5rem); /* Responsive font size */
+            font-size: 3rem;
             font-weight: 800;
             color: white;
             text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-            margin-bottom: 1.5rem;
+            margin-bottom: 1rem;
             animation: fadeInUp 1s ease-out;
-            line-height: 1.2;
         }
+
         .hero-subtitle {
-            font-size: clamp(1rem, 3vw, 1.3rem); /* Responsive font size */
+            font-size: 1.2rem;
             color: rgba(255, 255, 255, 0.9);
             margin-bottom: 2rem;
             animation: fadeInUp 1s ease-out 0.2s both;
-            line-height: 1.5;
         }
 
-        .hero-cta {
-            animation: fadeInUp 1s ease-out 0.4s both;
-        }
-
-        .btn-hero {
-            background: white;
-            color: var(--primary-green);
-            font-weight: 700;
-            font-size: 1.1rem;
-            padding: 1rem 2.5rem;
-            border-radius: 15px;
-            border: none;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
-            margin: 0.5rem;
-            transition: all 0.3s ease-out;
-        }
-
-        .btn-hero:hover {
-            background: var(--dark-green);
-            color: var(--light-green);
-            transform: translateY(-3px);
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
-        }
-
-        .btn-hero-outline {
-            background: transparent;
-            color: white;
-            border: 2px solid white;
-            font-weight: 600;
-            font-size: 1.1rem;
-            padding: 1rem 2.5rem;
-            border-radius: 15px;
-            margin: 0.5rem;
-            transition: all 0.3s ease-out; /* Tambahkan ini */
-        }
-
-        .btn-hero, .btn-hero-outline {
-            font-weight: 600;
-            padding: 0.8rem 1.8rem;
-            border-radius: 15px;
-            margin: 0.5rem;
-            transition: all 0.3s ease-out;
-            font-size: clamp(0.9rem, 2vw, 1.1rem); /* Responsive font size */
-            white-space: nowrap;
-        }
-
-        .btn-hero-outline:hover {
-            background: white;
-            color: var(--primary-green);
-            transform: translateY(-3px);
-        }
         /* Floating Elements */
         .floating-element {
             position: absolute;
             animation: float 6s ease-in-out infinite;
-            display: none; /* Hide on small screens */
         }
 
         .floating-element:nth-child(1) { top: 20%; left: 10%; animation-delay: 0s; }
         .floating-element:nth-child(2) { top: 60%; right: 15%; animation-delay: 2s; }
         .floating-element:nth-child(3) { bottom: 20%; left: 20%; animation-delay: 4s; }
 
-        /* About Section */
-        .about-section {
-            padding: 6rem 0;
-            background: white;
-            position: relative;
-        }
-
-        .about-image {
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
-            transform: rotate(-2deg);
-            transition: all 0.3s ease;
-        }
-
-        .about-image:hover {
-            transform: rotate(0deg) scale(1.02);
-        }
-
-        .section-title {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: #1f2937;
-            margin-bottom: 1.5rem;
-            position: relative;
-            display: inline-block; /* Tambahkan ini */
-            text-align: center; /* Tambahkan ini */
-            width: 100%; /* Tambahkan ini */
-        }
-
-        .section-title::after {
-            content: '';
-            position: absolute;
-            bottom: -10px;
-            left: 50%; /* Ubah dari left: 0 ke left: 50% */
-            transform: translateX(-50%); /* Tambahkan ini untuk menengahkan */
-            width: 60px;
-            height: 4px;
-            background: var(--gradient-1);
-            border-radius: 2px;
-        }
-
-        .feature-list {
-            list-style: none;
-            padding: 0;
-        }
-
-        .feature-item {
-            padding: 0.8rem 0;
-            display: flex;
-            align-items: center;
-            font-size: 1.1rem;
-            color: #4b5563;
-        }
-
-        .feature-icon {
-            width: 24px;
-            height: 24px;
-            background: var(--gradient-1);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 1rem;
-            color: white;
-            font-size: 0.8rem;
-        }
-
-        /* Features Section */
-        .features-section {
-            padding: 6rem 0;
-            background: var(--gradient-2);
-        }
-
-        .feature-card {
+        /* Product Cards */
+        .product-card {
             background: white;
             border-radius: 20px;
-            padding: 2.5rem 2rem;
-            text-align: center;
+            overflow: hidden;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
             border: 1px solid rgba(34, 197, 94, 0.1);
             height: 100%;
             transition: all 0.3s ease;
             position: relative;
-            overflow: hidden;
         }
 
-        .feature-card::before {
+        .product-card::before {
             content: '';
             position: absolute;
             top: 0;
@@ -274,55 +217,153 @@
             background: var(--gradient-1);
         }
 
-        .feature-card:hover {
+        .product-card:hover {
             transform: translateY(-10px);
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
         }
 
-        .feature-card-icon {
-            width: 80px;
-            height: 80px;
-            background: var(--gradient-1);
-            border-radius: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 1.5rem;
-            font-size: 2rem;
-            color: white;
-            box-shadow: 0 8px 25px rgba(34, 197, 94, 0.3);
+        .product-img {
+            height: 200px;
+            width: 100%;
+            object-fit: cover;
+            transition: all 0.3s ease;
         }
 
-        .feature-card h4 {
-            font-size: 1.3rem;
+        .product-card:hover .product-img {
+            transform: scale(1.05);
+        }
+
+        .price {
+            color: var(--primary-green);
             font-weight: 700;
+            font-size: 1.2rem;
+        }
+
+        .badge-category {
+            background: var(--light-green);
+            color: var(--dark-green);
+            font-weight: 600;
+            border-radius: 20px;
+            padding: 0.5rem 1rem;
+        }
+
+        /* Filter Section */
+        .filter-section {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(34, 197, 94, 0.1);
+            position: sticky;
+            top: 100px;
+        }
+
+        .filter-section h5 {
             color: #1f2937;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+        }
+
+        .filter-section h6 {
+            color: #4b5563;
+            font-weight: 600;
             margin-bottom: 1rem;
         }
 
-        /* CTA Section */
-        .cta-section {
-            padding: 6rem 0;
+        .form-check-input:checked {
+            background-color: var(--primary-green);
+            border-color: var(--primary-green);
+        }
+
+        .form-range::-webkit-slider-thumb {
+            background: var(--primary-green);
+        }
+
+        .form-range::-moz-range-thumb {
+            background: var(--primary-green);
+        }
+
+        /* Buttons */
+        .btn-success {
             background: var(--gradient-1);
+            border: none;
+            font-weight: 600;
+            border-radius: 12px;
+            padding: 0.7rem 1.5rem;
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(34, 197, 94, 0.4);
+            background: var(--gradient-1);
+        }
+
+        .btn-outline-secondary {
+            border: 2px solid #e5e7eb;
+            color: #6b7280;
+            font-weight: 600;
+            border-radius: 12px;
+            padding: 0.7rem 1.5rem;
+        }
+
+        .btn-outline-secondary:hover {
+            background: #f9fafb;
+            border-color: #d1d5db;
+            transform: translateY(-2px);
+        }
+
+        /* Pagination */
+        .pagination .page-item.active .page-link {
+            background: var(--gradient-1);
+            border-color: var(--primary-green);
             color: white;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
         }
 
-        .cta-section::before {
-            content: '';
+        .pagination .page-link {
+            color: #374151;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            margin: 0 0.2rem;
+            padding: 0.7rem 1rem;
+            font-weight: 500;
+        }
+
+        .pagination .page-link:hover {
+            background: var(--light-green);
+            color: var(--primary-green);
+            border-color: var(--primary-green);
+            transform: translateY(-2px);
+        }
+
+        /* Alerts */
+        .guest-notice {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border: none;
+            border-left: 4px solid #f59e0b;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.1);
+        }
+
+        .filter-active {
+            background: var(--light-green);
+            border: none;
+            border-left: 4px solid var(--primary-green);
+            border-radius: 15px;
+            color: var(--dark-green);
+        }
+
+        .stock-badge {
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="25" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="25" r="1" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
-        }
-
-        .cta-content {
-            position: relative;
-            z-index: 2;
+            top: 15px;
+            right: 15px;
+            font-size: 0.8rem;
+            border-radius: 20px;
+            padding: 0.3rem 0.8rem;
+            font-weight: 600;
         }
 
         /* Footer */
@@ -381,68 +422,120 @@
                 font-size: 1.1rem;
             }
             
-            .btn-hero, .btn-hero-outline {
-                font-size: 1rem;
-                padding: 0.8rem 2rem;
+            .filter-section {
+                position: static;
+                margin-bottom: 2rem;
             }
-            
-            .section-title {
-                font-size: 2rem;
-            }
+        }
 
-            .floating-element {
-                display: block; /* Show on larger screens */
-            }
-            
-            .floating-element:nth-child(1) { top: 20%; left: 10%; animation-delay: 0s; }
-            .floating-element:nth-child(2) { top: 60%; right: 15%; animation-delay: 2s; }
-            .floating-element:nth-child(3) { bottom: 20%; left: 20%; animation-delay: 4s; }
+        /* Dropdown styles */
+        .dropdown-menu {
+            border-radius: 15px;
+            border: none;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .dropdown-item {
+            border-radius: 8px;
+            margin: 0.2rem;
+            padding: 0.7rem 1rem;
+        }
+
+        .dropdown-item:hover {
+            background: var(--light-green);
+            color: var(--primary-green);
         }
     </style>
 </head>
 <body>
     <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-modern fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-modern fixed-top">
         <div class="container">
-            <a class="navbar-brand" href="/">
+            <a class="navbar-brand" href="<?= $is_logged_in ? 'dashboard.php' : 'index.php'; ?>">
                 <i class="fas fa-seedling me-2"></i>Toko Hijau
             </a>
 
-            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <button class="navbar-toggler" type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#navbarNav"
+                    aria-controls="navbarNav"
+                    aria-expanded="false"
+                    aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
 
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-center">
+
+                    <!-- BERANDA -->
                     <li class="nav-item">
-                        <a class="nav-link active" href="/">
+                        <a class="nav-link" href="<?= $is_logged_in ? 'dashboard.php' : 'index.php'; ?>">
                             <i class="fas fa-home me-1"></i> Beranda
                         </a>
                     </li>
 
+                    <!-- PRODUK -->
                     <li class="nav-item">
-                        <a class="nav-link" href="/lihat_produk">
+                        <a class="nav-link active" href="lihat_produk.php">
                             <i class="fas fa-store me-1"></i> Produk
                         </a>
                     </li>
 
-                    <li class="nav-item">
-                        <a class="nav-link" href="/tentang">
-                            <i class="fas fa-info-circle me-1"></i> Tentang
-                        </a>
-                    </li>
+                    <?php if ($is_logged_in): ?>
+                        <!-- USER -->
+                        <li class="nav-item">
+                            <a class="nav-link" href="keranjang.php">
+                                <i class="fas fa-shopping-cart me-1"></i> Keranjang
+                            </a>
+                        </li>
 
-                    <li class="nav-item">
-                        <a class="nav-link" href="/kontak">
-                            <i class="fas fa-phone me-1"></i> Kontak
-                        </a>
-                    </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="pesanan.php">
+                                <i class="fas fa-clipboard-list me-1"></i> Pesanan
+                            </a>
+                        </li>
 
-                    <li class="nav-item ms-3">
-                        <a href="/login" class="btn btn-login">
-                            <i class="fas fa-sign-in-alt me-1"></i> Masuk
-                        </a>
-                    </li>
+                        <li class="nav-item dropdown ms-3">
+                            <a class="nav-link dropdown-toggle"
+                            href="#"
+                            id="navbarDropdown"
+                            role="button"
+                            data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                                <i class="fas fa-user me-1"></i>
+                                <?= htmlspecialchars($_SESSION['nama'] ?? 'User'); ?>
+                            </a>
+
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li>
+                                    <a class="dropdown-item" href="logout.php">
+                                        <i class="fas fa-sign-out-alt me-1"></i> Logout
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                    <?php else: ?>
+                        <!-- GUEST -->
+                        <li class="nav-item">
+                            <a class="nav-link" href="tentang.php">
+                                <i class="fas fa-info-circle me-1"></i> Tentang
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link" href="kontak.php">
+                                <i class="fas fa-phone me-1"></i> Kontak
+                            </a>
+                        </li>
+
+                        <li class="nav-item ms-3">
+                            <a href="login.php" class="btn btn-login">
+                                <i class="fas fa-sign-in-alt me-1"></i> Masuk
+                            </a>
+                        </li>
+                    <?php endif; ?>
+
                 </ul>
             </div>
         </div>
@@ -459,119 +552,296 @@
         <div class="floating-element">
             <i class="fas fa-tree text-white opacity-25" style="font-size: 3.5rem;"></i>
         </div>
-        
+
         <div class="container">
             <div class="row justify-content-center">
-                <div class="col-lg-8 col-md-10 col-11 text-center hero-content">
-                    <h1 class="hero-title">Selamat Datang di<br>Toko Hijau</h1>
-                    <p class="hero-subtitle">Platform terpercaya untuk produk pertanian berkualitas, ramah lingkungan, dan mendukung pertanian berkelanjutan</p>
-                    <div class="hero-cta d-flex flex-wrap justify-content-center">
-                        <a href="lihat_produk.php" class="btn btn-hero m-2">
-                            <i class="fas fa-shopping-bag me-2"></i>Jelajahi Produk
-                        </a>
-                        <a href="tentang.php" class="btn btn-hero-outline m-2">
-                            <i class="fas fa-info-circle me-2"></i>Pelajari Lebih
-                        </a>
-                    </div>
+                <div class="col-lg-8 text-center hero-content">
+                    <h1 class="hero-title">Produk Kami</h1>
+                    <p class="hero-subtitle">Temukan produk pertanian berkualitas tinggi untuk mendukung aktivitas bertani Anda</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- About Section -->
-    <section class="about-section">
-        <div class="container">
-            <div class="row align-items-center">
-                <div class="col-lg-6 mb-5 mb-lg-0">
-                    <h2 class="section-title">Tentang Toko Hijau</h2>
-                    <p class="text-muted mb-4">Toko Hijau adalah platform e-commerce yang berkomitmen menyediakan produk pertanian berkualitas tinggi dengan fokus pada keberlanjutan dan ramah lingkungan.</p>
-                    <p class="text-muted mb-4">Kami hadir untuk mendukung para petani dan penggiat pertanian dalam mewujudkan hasil panen optimal sambil menjaga kelestarian alam untuk generasi mendatang.</p>
+    <section class="container mb-5" style="padding-top: 2rem;">
+        <?php if(!$is_logged_in): ?>
+        <div class="guest-notice">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-info-circle me-3 text-warning" style="font-size: 1.5rem;"></i>
+                <div>
+                    <h5 class="mb-1">Anda belum login</h5>
+                    <p class="mb-0">Silakan <a href="login.php" class="text-success fw-bold">login</a> untuk dapat menambahkan produk ke keranjang dan melakukan pemesanan.</p>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <?php if(isset($_GET['kategori']) || isset($_GET['max_price'])): ?>
+        <div class="alert filter-active alert-dismissible fade show">
+            <i class="fas fa-filter me-2"></i> <strong>Filter aktif:</strong> 
+            <?php 
+            if(isset($_GET['kategori'])) {
+                $kategori_names = [];
+                $kategori_ids_display = explode(',', $_GET['kategori']);
+                foreach($kategori_ids_display as $id) {
+                    $stmt = $pdo->prepare("SELECT nama_kategori FROM kategori WHERE id_kategori = ?");
+                    $stmt->execute([(int)$id]);
+                    $kat = $stmt->fetch();
+                    if($kat) $kategori_names[] = $kat['nama_kategori'];
+                }
+                echo 'Kategori: '.implode(', ', $kategori_names).' ';
+            }
+            if(isset($_GET['max_price'])) {
+                echo 'Harga maks: Rp '.number_format((int)$_GET['max_price'], 0, ',', '.');
+            }
+            ?>
+            <a href="lihat_produk.php" class="float-end text-decoration-none">
+                <i class="fas fa-times"></i> Hapus semua filter
+            </a>
+        </div>
+        <?php endif; ?>
+
+        <div class="row">
+            <!-- Filter Section -->
+            <div class="col-md-3 mb-4">
+                <div class="filter-section">
+                    <h5><i class="fas fa-filter me-2"></i>Filter Produk</h5>
                     
-                    <ul class="feature-list">
-                        <li class="feature-item">
-                            <span class="feature-icon"><i class="fas fa-leaf"></i></span>
-                            Produk 100% alami dan berkualitas
-                        </li>
-                        <li class="feature-item">
-                            <span class="feature-icon"><i class="fas fa-recycle"></i></span>
-                            Kemasan ramah lingkungan
-                        </li>
-                        <li class="feature-item">
-                            <span class="feature-icon"><i class="fas fa-handshake"></i></span>
-                            Mendukung petani lokal
-                        </li>
-                        <li class="feature-item">
-                            <span class="feature-icon"><i class="fas fa-tag"></i></span>
-                            Harga kompetitif dan terjangkau
-                        </li>
-                    </ul>
-                </div>
-                <div class="col-lg-6">
-                    <img src="https://mediatani.co/wp-content/uploads/2015/01/sapta-usaha-tani-kesejahteraan-petani.jpg" 
-                         alt="Pertanian Modern" class="img-fluid about-image">
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Features Section -->
-    <section class="features-section">
-        <div class="container">
-            <div class="row mb-4"> <!-- Mengubah mb-5 menjadi mb-4 untuk jarak yang lebih rapat -->
-                <div class="col-lg-8 mx-auto text-center">
-                    <h2 class="section-title mb-3">Mengapa Memilih Kami?</h2> <!-- Menambahkan mb-3 untuk jarak judul dan paragraf -->
-                    <p class="lead text-muted mb-0">Komitmen kami terhadap kualitas, keberlanjutan, dan kepuasan pelanggan menjadikan Toko Hijau pilihan terbaik</p> <!-- Menambahkan mb-0 untuk menghilangkan margin bawah -->
+                    <!-- Kategori Filter -->
+                    <div class="mb-4">
+                        <h6><i class="fas fa-tags me-2"></i>Kategori</h6>
+                        <?php
+                        $categories = $pdo->query("SELECT * FROM kategori");
+                        while($cat = $categories->fetch()):
+                        ?>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" value="<?php echo $cat['id_kategori']; ?>" id="cat<?php echo $cat['id_kategori']; ?>"
+                                <?php echo (isset($_GET['kategori']) && in_array($cat['id_kategori'], explode(',', $_GET['kategori']))) ? 'checked' : ''; ?>>
+                            <label class="form-check-label" for="cat<?php echo $cat['id_kategori']; ?>">
+                                <?php echo htmlspecialchars($cat['nama_kategori']); ?>
+                            </label>
+                        </div>
+                        <?php endwhile; ?>
+                    </div>
+                    
+                    <!-- Harga Filter -->
+                    <div class="mb-4">
+                        <h6><i class="fas fa-money-bill-wave me-2"></i>Range Harga</h6>
+                        <input type="range" class="form-range" min="0" max="1000000" step="10000" id="priceRange" 
+                               value="<?php echo isset($_GET['max_price']) ? (int)$_GET['max_price'] : 1000000; ?>">
+                        <div class="d-flex justify-content-between mt-2">
+                            <small class="text-muted">Rp 0</small>
+                            <small class="text-muted" id="priceValue">Rp <?php echo isset($_GET['max_price']) ? number_format($_GET['max_price'], 0, ',', '.') : '1.000.000'; ?></small>
+                        </div>
+                    </div>
+                    
+                    <!-- Tombol Filter -->
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-success" id="applyFilter">
+                            <i class="fas fa-filter me-2"></i>Terapkan Filter
+                            <?php if(isset($_GET['kategori']) || isset($_GET['max_price'])): ?>
+                            <span class="badge bg-white text-success ms-2">Aktif</span>
+                            <?php endif; ?>
+                        </button>
+                        <button class="btn btn-outline-secondary" id="resetFilter">
+                            <i class="fas fa-sync-alt me-2"></i>Reset Filter
+                        </button>
+                    </div>
                 </div>
             </div>
             
-            <div class="row g-4 mt-3"> <!-- Menambahkan mt-3 untuk jarak dari judul section -->
-                <div class="col-lg-4 col-md-6">
-                    <div class="feature-card">
-                        <div class="feature-card-icon">
-                            <i class="fas fa-leaf"></i>
-                        </div>
-                        <h4>Ramah Lingkungan</h4>
-                        <p class="text-muted mb-0">Setiap produk dipilih dengan pertimbangan dampak lingkungan minimal dan mendukung praktik pertanian berkelanjutan.</p> <!-- Menambahkan mb-0 -->
+            <!-- Produk Section -->
+            <div class="col-md-9">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h5 class="text-muted">Menampilkan <span class="text-success fw-bold"><?php echo count($products); ?></span> produk dari <span class="text-success fw-bold"><?php echo $total_items; ?></span> total produk</h5>
                     </div>
                 </div>
                 
-                <div class="col-lg-4 col-md-6">
-                    <div class="feature-card">
-                        <div class="feature-card-icon">
-                            <i class="fas fa-award"></i>
+                <?php if(empty($products)): ?>
+                <div class="alert alert-info border-0" style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-radius: 15px;">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-info-circle me-3 text-blue" style="font-size: 1.5rem;"></i>
+                        <div>
+                            <h5 class="mb-1">Tidak ada produk ditemukan</h5>
+                            <p class="mb-0">Tidak ada produk yang ditemukan dengan filter saat ini. <a href="lihat_produk.php" class="text-primary fw-bold">Tampilkan semua produk</a></p>
                         </div>
-                        <h4>Kualitas Terbaik</h4>
-                        <p class="text-muted mb-0">Kami hanya menyediakan produk berkualitas tinggi dari sumber terpercaya dan telah teruji kualitasnya.</p> <!-- Menambahkan mb-0 -->
                     </div>
                 </div>
-                
-                <div class="col-lg-4 col-md-6">
-                    <div class="feature-card">
-                        <div class="feature-card-icon">
-                            <i class="fas fa-shipping-fast"></i>
-                        </div>
-                        <h4>Pengiriman Cepat</h4>
-                        <p class="text-muted mb-0">Sistem logistik yang efisien dengan kemasan ramah lingkungan untuk memastikan produk sampai dengan aman.</p> <!-- Menambahkan mb-0 -->
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
+                <?php else: ?>
+                <div class="row">
+                    <?php foreach ($products as $product): ?>
+                    <div class="col-lg-4 col-md-6 mb-4">
+                        <div class="product-card h-100 d-flex flex-column">
+                            <div class="position-relative" style="overflow: hidden; border-radius: 20px 20px 0 0;">
+                                <a href="detail_barang.php?id=<?php echo $product['id_barang']; ?>">
+                                    <img src="<?php echo htmlspecialchars($product['gambar'] ?? 'https://via.placeholder.com/300'); ?>" 
+                                        class="product-img" 
+                                        alt="<?php echo htmlspecialchars($product['nama_barang']); ?>">
+                                </a>
+                                <span class="badge <?php 
+                                    if ($product['stok'] == 0) {
+                                        echo 'bg-danger'; 
+                                    } elseif ($product['stok'] < 25) {
+                                        echo 'bg-warning text-dark'; 
+                                    } else {
+                                        echo 'bg-success';
+                                    }
+                                ?> stock-badge">
+                                    <?php echo $product['stok'] > 0 ? 'Stok: '.$product['stok'] : 'Habis'; ?>
+                                </span>
+                            </div>
 
-    <!-- CTA Section -->
-    <section class="cta-section">
-        <div class="container">
-            <div class="cta-content">
-                <h2 class="display-5 fw-bold mb-4">Mulai Berbelanja Sekarang</h2>
-                <p class="lead mb-5">Temukan berbagai produk pertanian berkualitas yang telah kami sediakan khusus untuk mendukung aktivitas pertanian Anda</p>
-                <a href="lihat_produk.php" class="btn btn-hero btn-lg">
-                    <i class="fas fa-arrow-right me-2"></i>Jelajahi Produk Kami
-                </a>
+                            <div class="p-3 d-flex flex-column h-100">
+                                <div class="mb-2">
+                                    <span class="badge badge-category"><?php 
+                                        $stmt = $pdo->prepare("SELECT nama_kategori FROM kategori WHERE id_kategori = ?");
+                                        $stmt->execute([$product['id_kategori']]);
+                                        $kategori = $stmt->fetch();
+                                        echo htmlspecialchars($kategori['nama_kategori']);
+                                    ?></span>
+                                </div>
+                                <h5 class="fw-bold mb-2">
+                                    <a href="detail_barang.php?id=<?php echo $product['id_barang']; ?>" class="text-decoration-none text-dark">
+                                        <?php echo htmlspecialchars($product['nama_barang']); ?>
+                                    </a>
+                                </h5>
+                                <p class="price mb-2">Rp <?php echo number_format($product['harga_eceran'], 0, ',', '.'); ?></p>
+                                <p class="text-muted small mb-3 flex-grow-1"><?php 
+                                    echo strlen($product['deskripsi']) > 100 ? 
+                                        substr(htmlspecialchars($product['deskripsi']), 0, 100).'...' : 
+                                        htmlspecialchars($product['deskripsi']);
+                                ?></p>
+
+                                <div class="d-grid gap-2 mt-auto">
+                                    <a href="detail_barang.php?id=<?php echo $product['id_barang']; ?>" class="btn btn-success">
+                                        <i class="fas fa-eye me-2"></i>Lihat Detail
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+                
+                <!-- Pagination -->
+                <?php if($total_pages > 1): ?>
+                <nav aria-label="Page navigation" class="mt-5">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item <?php echo ($current_page == 1) ? 'disabled' : ''; ?>">
+                            <a class="page-link" href="?page=<?php echo $current_page-1; ?><?php echo isset($_GET['kategori']) ? '&kategori='.$_GET['kategori'] : ''; ?><?php echo isset($_GET['max_price']) ? '&max_price='.$_GET['max_price'] : ''; ?>" tabindex="-1">
+                                <i class="fas fa-chevron-left me-1"></i>Sebelumnya
+                            </a>
+                        </li>
+                        
+                        <?php 
+                        // Tampilkan maksimal 5 nomor halaman di sekitar current page
+                        $start_page = max(1, $current_page - 2);
+                        $end_page = min($total_pages, $current_page + 2);
+                        
+                        if ($start_page > 1) {
+                            echo '<li class="page-item"><a class="page-link" href="?page=1'.(isset($_GET['kategori']) ? '&kategori='.$_GET['kategori'] : '').(isset($_GET['max_price']) ? '&max_price='.$_GET['max_price'] : '').'">1</a></li>';
+                            if ($start_page > 2) {
+                                echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
+                            }
+                        }
+                        
+                        for ($i = $start_page; $i <= $end_page; $i++): 
+                        ?>
+                            <li class="page-item <?php echo ($current_page == $i) ? 'active' : ''; ?>">
+                                <a class="page-link" href="?page=<?php echo $i; ?><?php echo isset($_GET['kategori']) ? '&kategori='.$_GET['kategori'] : ''; ?><?php echo isset($_GET['max_price']) ? '&max_price='.$_GET['max_price'] : ''; ?>">
+                                    <?php echo $i; ?>
+                                </a>
+                            </li>
+                        <?php 
+                        endfor;
+                        
+                        if ($end_page < $total_pages) {
+                            if ($end_page < $total_pages - 1) {
+                                echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
+                            }
+                            echo '<li class="page-item"><a class="page-link" href="?page='.$total_pages.(isset($_GET['kategori']) ? '&kategori='.$_GET['kategori'] : '').(isset($_GET['max_price']) ? '&max_price='.$_GET['max_price'] : '').'">'.$total_pages.'</a></li>';
+                        }
+                        ?>
+                        
+                        <li class="page-item <?php echo ($current_page == $total_pages) ? 'disabled' : ''; ?>">
+                            <a class="page-link" href="?page=<?php echo $current_page+1; ?><?php echo isset($_GET['kategori']) ? '&kategori='.$_GET['kategori'] : ''; ?><?php echo isset($_GET['max_price']) ? '&max_price='.$_GET['max_price'] : ''; ?>">
+                                Selanjutnya <i class="fas fa-chevron-right ms-1"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+                <?php endif; ?>
+                <?php endif; ?>
             </div>
         </div>
     </section>
 
     <!-- Footer -->
+    <?php if($is_logged_in): ?>
+    <!-- Footer untuk anggota (sudah login) -->
+    <footer class="footer-modern">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-4 mb-4">
+                    <h5 class="footer-brand mb-3">
+                        <i class="fas fa-seedling me-2"></i>Toko Hijau
+                    </h5>
+                    <p class="text-white">Platform terpercaya untuk produk pertanian berkualitas, ramah lingkungan, dan mendukung pertanian berkelanjutan di Indonesia.</p>
+                    <div class="mt-4">
+                        <a href="#" class="footer-link d-inline-block me-3">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        <a href="#" class="footer-link d-inline-block me-3">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        <a href="#" class="footer-link d-inline-block me-3">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="col-lg-2 col-md-6 mb-4">
+                    <h6 class="text-white fw-bold mb-3">Akun</h6>
+                    <a href="dashboard.php" class="footer-link">Dashboard</a>
+                    <a href="#" class="footer-link">Produk</a>
+                    <a href="keranjang.php" class="footer-link">Keranjang</a>
+                    <a href="pesanan.php" class="footer-link">Pesanan</a>
+                </div>
+                
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <h6 class="text-white fw-bold mb-3">Produk</h6>
+                    <a href="#" class="footer-link">Alat Pertanian</a>
+                    <a href="#" class="footer-link">Pupuk Organik</a>
+                    <a href="#" class="footer-link">Benih Unggul</a>
+                    <a href="#" class="footer-link">Pestisida Alami</a>
+                </div>
+                
+                <div class="col-lg-3 mb-4">
+                    <h6 class="text-white fw-bold mb-3">Layanan Pelanggan</h6>
+                    <div class="footer-link">
+                        <i class="fas fa-envelope me-2"></i>
+                        cs@tokohijau.com
+                    </div>
+                    <div class="footer-link">
+                        <i class="fas fa-phone me-2"></i>
+                        +62 123 4567 890 (CS)
+                    </div>
+                    <div class="footer-link">
+                        <i class="fas fa-clock me-2"></i>
+                        Senin-Jumat, 08:00-17:00
+                    </div>
+                </div>
+            </div>
+            
+            <hr class="my-4" style="border-color: #374151;">
+            <div class="text-center">
+                <p class="text-white mb-0">&copy; 2024 Toko Hijau. Semua hak dilindungi undang-undang.</p>
+            </div>
+        </div>
+    </footer>
+    <?php else: ?>
+    <!-- Footer untuk user guest (belum login) -->
     <footer class="footer-modern">
         <div class="container">
             <div class="row">
@@ -595,7 +865,7 @@
                 
                 <div class="col-lg-2 col-md-6 mb-4">
                     <h6 class="text-white fw-bold mb-3">Menu</h6>
-                    <a href="#" class="footer-link">Beranda</a>
+                    <a href="index.php" class="footer-link">Beranda</a>
                     <a href="lihat_produk.php" class="footer-link">Produk</a>
                     <a href="tentang.php" class="footer-link">Tentang</a>
                     <a href="kontak.php" class="footer-link">Kontak</a>
@@ -632,53 +902,52 @@
             </div>
         </div>
     </footer>
+    <?php endif; ?>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Smooth scrolling untuk anchor links
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                }
+        document.addEventListener('DOMContentLoaded', function() {
+            const priceRange = document.getElementById('priceRange');
+            const priceValue = document.getElementById('priceValue');
+            
+            // Update tampilan harga saat slider diubah
+            priceRange.addEventListener('input', function() {
+                priceValue.textContent = 'Rp ' + parseInt(priceRange.value).toLocaleString('id-ID');
             });
-        });
-
-        // Navbar background change on scroll
-        window.addEventListener('scroll', function() {
-            const navbar = document.querySelector('.navbar-modern');
-            if (window.scrollY > 50) {
-                navbar.style.background = 'rgba(255, 255, 255, 0.98)';
-            } else {
-                navbar.style.background = 'rgba(255, 255, 255, 0.95)';
-            }
-        });
-
-        // Intersection Observer untuk animasi
-        const observerOptions = {
-            threshold: 0.1,
-            rootMargin: '0px 0px -50px 0px'
-        };
-
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.style.opacity = '1';
-                    entry.target.style.transform = 'translateY(0)';
+            
+            // Apply Filter
+            document.getElementById('applyFilter').addEventListener('click', function() {
+                const selectedCategories = [];
+                document.querySelectorAll('.form-check-input:checked').forEach(checkbox => {
+                    selectedCategories.push(checkbox.value);
+                });
+                
+                const maxPrice = priceRange.value;
+                let queryParams = [];
+                
+                if (selectedCategories.length > 0) {
+                    queryParams.push('kategori=' + encodeURIComponent(selectedCategories.join(',')));
                 }
+                
+                if (maxPrice < 1000000) {
+                    queryParams.push('max_price=' + encodeURIComponent(maxPrice));
+                }
+                
+                window.location.href = 'lihat_produk.php' + (queryParams.length > 0 ? '?' + queryParams.join('&') : '');
             });
-        }, observerOptions);
-
-        // Observe elemen yang ingin dianimasi
-        document.querySelectorAll('.feature-card, .about-section img').forEach(el => {
-            el.style.opacity = '0';
-            el.style.transform = 'translateY(30px)';
-            observer.observe(el);
+            
+            // Reset Filter
+            document.getElementById('resetFilter').addEventListener('click', function() {
+                // Reset semua input filter
+                document.querySelectorAll('.form-check-input').forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+                priceRange.value = 1000000;
+                priceValue.textContent = 'Rp 1.000.000';
+                
+                // Redirect tanpa parameter
+                window.location.href = 'lihat_produk.php';
+            });
         });
     </script>
 </body>
