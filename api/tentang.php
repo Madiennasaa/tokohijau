@@ -406,7 +406,7 @@
                         <a class="nav-link" href="/kontak"><i class="fas fa-phone me-1"></i> Kontak</a>
                     </li>
                     <li class="nav-item ms-3">
-                        <a href="login.php" class="btn btn-login">
+                        <a href="/login" class="btn btn-login">
                             <i class="fas fa-sign-in-alt me-1"></i> Masuk
                         </a>
                     </li>
@@ -520,7 +520,7 @@
             <div class="row g-4">
                 <div class="col-lg-4 col-md-6">
                     <div class="team-card">
-                        <img src="<?php echo $base_url; ?>assets/sapwon.jpg" alt="Shofwan Ali Santosa" class="team-img">
+                        <img src="<?php echo $base_url; ?>../assets/sapwon.jpg" alt="Shofwan Ali Santosa" class="team-img">
                         <h4 class="team-name">Shofwan Ali Santosa</h4>
                         <p class="team-role">Founder & CEO</p>
                         <p class="team-description">Visioner di balik Toko Hijau dengan passion mendalam terhadap pertanian berkelanjutan. Wajahnya memancarkan ketenangan alami, dengan sorot mata tajam namun berbinar seperti orang yang selalu terinspirasi oleh alam. Memimpin dengan kepedulian terhadap lingkungan dan komitmen pada kualitas produk.</p>
@@ -529,7 +529,7 @@
                 
                 <div class="col-lg-4 col-md-6">
                     <div class="team-card">
-                        <img src="<?php echo $base_url; ?>assets/akpa.jpg" alt="Akfa Ulin Nuha" class="team-img">
+                        <img src="<?php echo $base_url; ?>../assets/akpa.jpg" alt="Akfa Ulin Nuha" class="team-img">
                         <h4 class="team-name">Akfa Ulin Nuha</h4>
                         <p class="team-role">Head of Operations</p>
                         <p class="team-description">Ahli dalam mengelola operasional dengan precision tinggi. Memiliki raut wajah cekatan dan detail, selalu memastikan setiap pengiriman produk ramah lingkungan sampai tepat waktu. Bertanggung jawab atas efisiensi logistik dan kualitas pelayanan pelanggan yang luar biasa.</p>
@@ -538,7 +538,7 @@
                 
                 <div class="col-lg-4 col-md-6">
                     <div class="team-card">
-                        <img src="<?php echo $base_url; ?>assets/pakmi.png" alt="Fahmi Fikanjati" class="team-img">
+                        <img src="<?php echo $base_url; ?>../assets/pakmi.png" alt="Fahmi Fikanjati" class="team-img">
                         <h4 class="team-name">Fahmi Fikanjati</h4>
                         <p class="team-role">Product Manager</p>
                         <p class="team-description">Inovator produk yang tak kenal lelah mencari dan mengembangkan produk pertanian terbaik. Wajahnya bersahabat dan penuh rasa ingin tahu, dengan antusiasme tinggi dalam memastikan setiap produk memenuhi standar kualitas tertinggi dan ramah lingkungan.</p>
