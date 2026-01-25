@@ -625,14 +625,14 @@
             <!-- Links -->
             <div class="register-links">
                 <div class="mb-2">
-                    <span class="text-muted">Sudah punya akun?</span> <a href="login_form.php">Masuk disini</a>
+                    <span class="text-muted">Sudah punya akun?</span> <a href="\login_form.">Masuk disini</a>
                 </div>
                 
                 <div class="divider">
                     <span>atau</span>
                 </div>
                 
-                <a href="index.php" class="text-muted">
+                <a href="\" class="text-muted">
                     <i class="fas fa-arrow-left me-1"></i>
                     Kembali ke Beranda
                 </a>
