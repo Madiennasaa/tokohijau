@@ -13,9 +13,12 @@ try {
 
     // Query untuk menghitung total produk
     $total_items_query = "SELECT COUNT(*) as total FROM barang $where_clause";
-    $total_items_stmt = $pdo->prepare($total_items_query);
+    $total_items_stmt = $pdo->prepare(
+    "SELECT COUNT(*) FROM barang $where_clause"
+    );
     $total_items_stmt->execute($params);
-    $total_items = $total_items_stmt->fetch()['total'];
+    $total_items = $total_items_stmt->fetchColumn();
+
 
     // Hitung total halaman
     $total_pages = ceil($total_items / $items_per_page);
@@ -31,35 +34,37 @@ try {
     $params = [];
 
     // Filter kategori
-    if(isset($_GET['kategori']) && $_GET['kategori'] !== '') {
-        $kategori_ids = explode(',', $_GET['kategori']);
-        $kategori_ids = array_filter(array_map('intval', $kategori_ids));
-        
-        if (!empty($kategori_ids)) {
-            $placeholders = str_repeat('?,', count($kategori_ids) - 1) . '?';
+    if (!empty($_GET['kategori'])) {
+        $kategori_ids = array_filter(array_map('intval', explode(',', $_GET['kategori'])));
+        if ($kategori_ids) {
+            $placeholders = implode(',', array_fill(0, count($kategori_ids), '?'));
             $where_conditions[] = "id_kategori IN ($placeholders)";
             $params = array_merge($params, $kategori_ids);
         }
     }
 
     // Filter harga
-    if(isset($_GET['max_price']) && $_GET['max_price'] !== '') {
-        $max_price = (int)$_GET['max_price'];
+    if (!empty($_GET['max_price'])) {
         $where_conditions[] = "harga_eceran <= ?";
-        $params[] = $max_price;
+        $params[] = (int)$_GET['max_price'];
     }
 
-    // Build WHERE clause
-    $where_clause = count($where_conditions) > 0 ? " WHERE " . implode(' AND ', $where_conditions) : "";
+    $where_clause = $where_conditions
+        ? 'WHERE ' . implode(' AND ', $where_conditions)
+        : '';
+
 
     // Query produk dengan filter dan pagination
     $offset_safe = (int)$offset;
     $limit_safe = (int)$items_per_page;
     $products_query = "SELECT * FROM barang $where_clause LIMIT $offset_safe, $limit_safe";
 
-    $products_stmt = $pdo->prepare($products_query);
-    $products_stmt->execute($params);
+    $products_stmt = $pdo->prepare(
+    "SELECT * FROM barang $where_clause LIMIT ?, ?"
+    );
+    $products_stmt->execute([...$params, $offset, $items_per_page]);
     $products = $products_stmt->fetchAll();
+
 
 } catch (PDOException $e) {
     // Log error untuk debugging
