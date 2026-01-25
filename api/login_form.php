@@ -462,7 +462,7 @@
             <div id="alertContainer"></div>
 
             <!-- Login Form -->
-            <form action="login.php" method="POST" id="loginForm">
+            <form action="/login" method="POST" id="loginForm">
                 <div class="mb-3">
                     <label for="email" class="form-label">
                         <i class="fas fa-envelope"></i>
