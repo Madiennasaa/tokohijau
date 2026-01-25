@@ -100,21 +100,18 @@
             position: relative;
             z-index: 10;
             width: 100%;
-            max-width: 520px;
+            max-width: 900px;
             padding: 0 1rem;
-            max-height: 100vh;
-            overflow-y: auto;
         }
 
         .register-card {
             background: white;
             border-radius: 20px;
-            padding: 1.25rem 1.5rem;
+            padding: 1.25rem 1.75rem;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
             border: 1px solid rgba(34, 197, 94, 0.1);
             transition: all 0.3s ease;
             position: relative;
-            margin: 1rem 0;
         }
 
         .register-card::before {
@@ -154,7 +151,7 @@
         }
 
         .brand-title {
-            font-size: 1.3rem;
+            font-size: 1.35rem;
             font-weight: 700;
             background: var(--gradient-1);
             -webkit-background-clip: text;
@@ -474,7 +471,7 @@
             }
             
             .register-header {
-                margin-bottom: 0.85rem;
+                margin-bottom: 0.75rem;
             }
             
             .form-control, .form-select {
@@ -486,31 +483,22 @@
             }
 
             .mb-3 {
-                margin-bottom: 0.6rem !important;
+                margin-bottom: 0.55rem !important;
+            }
+
+            .mb-4 {
+                margin-bottom: 0.7rem !important;
+            }
+
+            .alert {
+                padding: 0.4rem 0.6rem;
+                margin-bottom: 0.6rem;
             }
         }
 
         /* Page Load Animation */
         .register-container {
             animation: fadeInUp 0.8s ease-out;
-        }
-
-        /* Scrollbar styling */
-        .register-container::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .register-container::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .register-container::-webkit-scrollbar-thumb {
-            background: var(--primary-green);
-            border-radius: 10px;
-        }
-
-        .register-container::-webkit-scrollbar-thumb:hover {
-            background: var(--dark-green);
         }
     </style>
 </head>
@@ -548,7 +536,7 @@
             <!-- Register Form -->
             <form id="registerForm" method="POST" novalidate>
                 <div class="row">
-                    <div class="col-md-6 mb-3">
+                    <div class="col-md-4 mb-3">
                         <label for="nama" class="form-label">
                             <i class="fas fa-user"></i>
                             Nama Lengkap
@@ -557,13 +545,21 @@
                         <div class="invalid-feedback">Nama harus diisi.</div>
                     </div>
                     
-                    <div class="col-md-6 mb-3">
+                    <div class="col-md-4 mb-3">
                         <label for="email" class="form-label">
                             <i class="fas fa-envelope"></i>
                             Email
                         </label>
                         <input type="email" class="form-control" id="email" name="email" required placeholder="nama@email.com">
                         <div class="invalid-feedback">Email harus valid.</div>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label for="no_telepon" class="form-label">
+                            <i class="fas fa-phone"></i>
+                            No. Telepon
+                        </label>
+                        <input type="tel" class="form-control" id="no_telepon" name="no_telepon" placeholder="08xxxxxxxxxx">
                     </div>
                 </div>
                 
@@ -583,19 +579,11 @@
                     <div class="col-md-6 mb-3">
                         <label for="confirm_password" class="form-label">
                             <i class="fas fa-lock"></i>
-                            Konfirmasi
+                            Konfirmasi Password
                         </label>
                         <input type="password" class="form-control" id="confirm_password" name="confirm_password" required placeholder="Ulangi password">
                         <div class="invalid-feedback">Password tidak sama.</div>
                     </div>
-                </div>
-                
-                <div class="mb-3">
-                    <label for="no_telepon" class="form-label">
-                        <i class="fas fa-phone"></i>
-                        No. Telepon
-                    </label>
-                    <input type="tel" class="form-control" id="no_telepon" name="no_telepon" placeholder="08xxxxxxxxxx">
                 </div>
                 
                 <div class="mb-3">
@@ -625,14 +613,14 @@
             <!-- Links -->
             <div class="register-links">
                 <div class="mb-2">
-                    <span class="text-muted">Sudah punya akun?</span> <a href="\login_form.">Masuk disini</a>
+                    <span class="text-muted">Sudah punya akun?</span> <a href="/login_form">Masuk disini</a>
                 </div>
                 
                 <div class="divider">
                     <span>atau</span>
                 </div>
                 
-                <a href="\" class="text-muted">
+                <a href="/" class="text-muted">
                     <i class="fas fa-arrow-left me-1"></i>
                     Kembali ke Beranda
                 </a>
@@ -659,7 +647,6 @@
                     }, 2000);
                 }, 1500);
             } else {
-                scrollToFirstError();
                 showAlert('⚠️ Mohon lengkapi semua field dengan benar.', 'danger');
             }
         });
@@ -846,17 +833,6 @@
         window.addEventListener('load', () => {
             document.getElementById('nama').focus();
         });
-
-        function scrollToFirstError() {
-            const firstError = document.querySelector('.is-invalid');
-            if (firstError) {
-                firstError.scrollIntoView({ 
-                    behavior: 'smooth', 
-                    block: 'center' 
-                });
-                firstError.focus();
-            }
-        }
 
         function showLoadingOverlay() {
             const overlay = document.createElement('div');
