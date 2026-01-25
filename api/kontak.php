@@ -376,13 +376,13 @@
                         <a class="nav-link" href="/"><i class="fas fa-home me-1"></i> Beranda</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/lihat_produk."><i class="fas fa-store me-1"></i> Produk</a>
+                        <a class="nav-link" href="/lihat_produk"><i class="fas fa-store me-1"></i> Produk</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/tentang."><i class="fas fa-info-circle me-1"></i> Tentang</a>
+                        <a class="nav-link" href="/tentang"><i class="fas fa-info-circle me-1"></i> Tentang</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link active" href="/kontak."><i class="fas fa-phone me-1"></i> Kontak</a>
+                        <a class="nav-link active" href="/kontak"><i class="fas fa-phone me-1"></i> Kontak</a>
                     </li>
                     <li class="nav-item ms-3">
                         <a href="/login" class="btn btn-login">
