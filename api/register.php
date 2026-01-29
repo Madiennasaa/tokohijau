@@ -148,13 +148,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
-            min-height: 100vh;
+            height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 2rem 1rem;
+            padding: 0.5rem;
             position: relative;
-            overflow-x: hidden;
+            overflow: hidden;
         }
 
         /* Background Decorations */
@@ -183,30 +183,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             animation: float 6s ease-in-out infinite reverse;
         }
 
-        .bg-decoration:nth-child(3) {
-            width: 150px;
-            height: 150px;
-            background: var(--gradient-1);
-            top: 20%;
-            right: 5%;
-            animation: float 10s ease-in-out infinite;
-        }
-
         /* Main Container */
         .register-container {
             width: 100%;
-            max-width: 600px;
+            max-width: 1200px;
+            height: 100%;
+            max-height: 100vh;
             position: relative;
             z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .register-card {
             background: white;
-            border-radius: 24px;
-            padding: 2.5rem 2rem;
+            border-radius: 20px;
+            padding: 1.5rem;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
             border: 1px solid rgba(34, 197, 94, 0.1);
             position: relative;
+            width: 100%;
+            max-width: 900px;
             animation: fadeInUp 0.6s ease-out;
         }
 
@@ -216,104 +214,101 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             top: 0;
             left: 0;
             right: 0;
-            height: 5px;
+            height: 4px;
             background: var(--gradient-1);
-            border-radius: 24px 24px 0 0;
+            border-radius: 20px 20px 0 0;
         }
 
         /* Header */
         .register-header {
             text-align: center;
-            margin-bottom: 2rem;
-        }
-
-        .brand-icon {
-            width: 70px;
-            height: 70px;
-            background: var(--gradient-1);
-            border-radius: 20px;
+            margin-bottom: 1.25rem;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 1rem;
-            font-size: 2rem;
+            gap: 1rem;
+        }
+
+        .brand-icon {
+            width: 50px;
+            height: 50px;
+            background: var(--gradient-1);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
             color: white;
-            box-shadow: 0 8px 25px rgba(34, 197, 94, 0.3);
-            animation: pulse 2s infinite;
+            box-shadow: 0 6px 20px rgba(34, 197, 94, 0.3);
+            flex-shrink: 0;
+        }
+
+        .header-text {
+            text-align: left;
         }
 
         .brand-title {
-            font-size: 2rem;
+            font-size: 1.5rem;
             font-weight: 700;
             background: var(--gradient-1);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0;
+            line-height: 1.2;
         }
 
         .brand-subtitle {
             color: #6b7280;
-            font-size: 1rem;
+            font-size: 0.85rem;
+            margin: 0;
         }
 
-        /* Alert */
-        .alert {
-            border: none;
-            border-radius: 12px;
-            padding: 1rem 1.25rem;
-            margin-bottom: 1.5rem;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
+        /* Form Layout */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
         }
 
-        .alert-danger {
-            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.1) 100%);
-            color: #dc2626;
-            border-left: 4px solid #ef4444;
-        }
-
-        .alert-success {
-            background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(22, 163, 74, 0.1) 100%);
-            color: var(--dark-green);
-            border-left: 4px solid var(--primary-green);
+        .form-grid .full-width {
+            grid-column: 1 / -1;
         }
 
         /* Form */
         .form-label {
             font-weight: 600;
             color: #374151;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.35rem;
             display: flex;
             align-items: center;
-            font-size: 0.95rem;
+            font-size: 0.85rem;
         }
 
         .form-label i {
-            margin-right: 0.5rem;
+            margin-right: 0.4rem;
             color: var(--primary-green);
-            width: 16px;
+            width: 14px;
+            font-size: 0.85rem;
         }
 
         .form-label .required {
             color: #ef4444;
-            margin-left: 0.25rem;
+            margin-left: 0.2rem;
         }
 
         .form-control, .form-select {
             border: 2px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 0.75rem 1rem;
-            font-size: 0.95rem;
+            border-radius: 10px;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.85rem;
             transition: all 0.3s ease;
             background: #fafafa;
         }
 
         .form-control:focus, .form-select:focus {
             border-color: var(--primary-green);
-            box-shadow: 0 0 0 0.25rem rgba(34, 197, 94, 0.15);
+            box-shadow: 0 0 0 0.2rem rgba(34, 197, 94, 0.15);
             background: white;
             outline: none;
         }
@@ -325,15 +320,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         textarea.form-control {
             resize: vertical;
-            min-height: 100px;
+            min-height: 70px;
         }
 
         /* Password Strength */
         .password-strength {
-            height: 4px;
+            height: 3px;
             background: #e5e7eb;
             border-radius: 2px;
-            margin-top: 0.5rem;
+            margin-top: 0.35rem;
             overflow: hidden;
         }
 
@@ -359,9 +354,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         .password-hint {
-            font-size: 0.8rem;
+            font-size: 0.7rem;
             color: #6b7280;
-            margin-top: 0.25rem;
+            margin-top: 0.2rem;
         }
 
         /* Checkbox */
@@ -369,13 +364,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             padding-left: 0;
             display: flex;
             align-items: flex-start;
-            gap: 0.75rem;
+            gap: 0.6rem;
         }
 
         .form-check-input {
-            width: 20px;
-            height: 20px;
-            margin-top: 0.25rem;
+            width: 18px;
+            height: 18px;
+            margin-top: 0.1rem;
             border: 2px solid #d1d5db;
             cursor: pointer;
             flex-shrink: 0;
@@ -388,13 +383,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         .form-check-input:focus {
             border-color: var(--primary-green);
-            box-shadow: 0 0 0 0.25rem rgba(34, 197, 94, 0.15);
+            box-shadow: 0 0 0 0.2rem rgba(34, 197, 94, 0.15);
         }
 
         .form-check-label {
             color: #4b5563;
-            font-size: 0.9rem;
-            line-height: 1.5;
+            font-size: 0.8rem;
+            line-height: 1.4;
             cursor: pointer;
         }
 
@@ -415,15 +410,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border: none;
             color: white;
             font-weight: 600;
-            padding: 1rem 2rem;
-            border-radius: 12px;
-            font-size: 1.05rem;
+            padding: 0.7rem 1.5rem;
+            border-radius: 10px;
+            font-size: 0.95rem;
             box-shadow: 0 6px 20px rgba(34, 197, 94, 0.3);
             transition: all 0.3s ease;
             width: 100%;
-            position: relative;
-            overflow: hidden;
-            margin-top: 1rem;
+            margin-top: 0.75rem;
         }
 
         .btn-register:hover {
@@ -438,15 +431,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         /* Links */
         .register-links {
             text-align: center;
-            margin-top: 1.5rem;
-            padding-top: 1.5rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
             border-top: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
         }
 
         .register-links p {
-            margin-bottom: 0.75rem;
+            margin: 0;
             color: #6b7280;
-            font-size: 0.95rem;
+            font-size: 0.85rem;
         }
 
         .register-links a {
@@ -454,6 +451,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             text-decoration: none;
             font-weight: 600;
             transition: all 0.3s ease;
+            font-size: 0.85rem;
         }
 
         .register-links a:hover {
@@ -461,50 +459,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             text-decoration: underline;
         }
 
-        .divider {
-            display: flex;
-            align-items: center;
-            text-align: center;
-            margin: 1rem 0;
-            color: #9ca3af;
-            font-size: 0.85rem;
-        }
-
-        .divider::before,
-        .divider::after {
-            content: '';
-            flex: 1;
-            border-bottom: 1px solid #e5e7eb;
-        }
-
-        .divider span {
-            padding: 0 1rem;
-        }
-
         /* Validation States */
         .form-control.is-valid {
             border-color: var(--primary-green);
             background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%2322c55e' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
             background-repeat: no-repeat;
-            background-position: right 1rem center;
-            background-size: 1.2rem;
-            padding-right: 3rem;
+            background-position: right 0.75rem center;
+            background-size: 1rem;
+            padding-right: 2.5rem;
         }
 
         .form-control.is-invalid {
             border-color: #ef4444;
             background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23ef4444'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23ef4444' stroke='none'/%3e%3c/svg%3e");
             background-repeat: no-repeat;
-            background-position: right 1rem center;
-            background-size: 1.2rem;
-            padding-right: 3rem;
+            background-position: right 0.75rem center;
+            background-size: 1rem;
+            padding-right: 2.5rem;
         }
 
         .invalid-feedback,
         .valid-feedback {
             display: none;
-            margin-top: 0.5rem;
-            font-size: 0.85rem;
+            margin-top: 0.35rem;
+            font-size: 0.75rem;
             font-weight: 500;
         }
 
@@ -526,11 +504,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         /* Spacing */
         .mb-3 {
-            margin-bottom: 1.25rem !important;
-        }
-
-        .mb-4 {
-            margin-bottom: 1.75rem !important;
+            margin-bottom: 0.75rem !important;
         }
 
         /* Animations */
@@ -551,15 +525,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             50% { 
                 transform: translateY(-20px) rotate(5deg); 
-            }
-        }
-
-        @keyframes pulse {
-            0%, 100% { 
-                transform: scale(1); 
-            }
-            50% { 
-                transform: scale(1.05); 
             }
         }
 
@@ -592,56 +557,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             animation: spin 1s linear infinite;
         }
 
-        /* Responsive */
-        @media (max-width: 768px) {
-            body {
-                padding: 1rem 0.75rem;
-            }
-
-            .register-card {
-                padding: 2rem 1.5rem;
-            }
-
-            .brand-icon {
-                width: 60px;
-                height: 60px;
-                font-size: 1.75rem;
-            }
-
-            .brand-title {
-                font-size: 1.75rem;
-            }
-
-            .bg-decoration {
-                display: none;
-            }
+        /* Alert */
+        .alert {
+            border: none;
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-size: 0.85rem;
         }
 
-        @media (max-height: 700px) {
-            .register-card {
-                padding: 1.5rem;
-            }
+        .alert-danger {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.1) 100%);
+            color: #dc2626;
+            border-left: 4px solid #ef4444;
+        }
 
-            .brand-icon {
-                width: 50px;
-                height: 50px;
-                font-size: 1.5rem;
-                margin-bottom: 0.75rem;
+        .alert-success {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(22, 163, 74, 0.1) 100%);
+            color: var(--dark-green);
+            border-left: 4px solid var(--primary-green);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
             }
 
             .register-header {
-                margin-bottom: 1.5rem;
+                flex-direction: column;
+                gap: 0.5rem;
             }
 
-            .mb-3 {
-                margin-bottom: 1rem !important;
+            .header-text {
+                text-align: center;
+            }
+
+            .register-links {
+                flex-direction: column;
+                gap: 0.5rem;
             }
         }
     </style>
 </head>
 <body>
     <!-- Background Decorations -->
-    <div class="bg-decoration"></div>
     <div class="bg-decoration"></div>
     <div class="bg-decoration"></div>
 
@@ -652,154 +616,145 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="brand-icon">
                     <i class="fas fa-user-plus"></i>
                 </div>
-                <h1 class="brand-title">Toko Hijau</h1>
-                <p class="brand-subtitle">Bergabunglah dengan komunitas kami</p>
-            </div>
-
-            <!-- Alert Messages -->
-            <?php if ($alert): ?>
-                <div class="alert alert-<?= $alertClass ?> alert-dismissible fade show" role="alert">
-                    <i class="fas <?= $alertClass === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle' ?>"></i>
-                    <span><?= sanitize($alert) ?></span>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                <div class="header-text">
+                    <h1 class="brand-title">Toko Hijau</h1>
+                    <p class="brand-subtitle">Bergabunglah dengan komunitas kami</p>
                 </div>
-            <?php endif; ?>
+            </div>
 
             <!-- Register Form -->
             <form id="registerForm" method="POST" action="" novalidate>
-                <!-- Nama Lengkap -->
-                <div class="mb-3">
-                    <label for="nama" class="form-label">
-                        <i class="fas fa-user"></i>
-                        <span>Nama Lengkap <span class="required">*</span></span>
-                    </label>
-                    <input 
-                        type="text" 
-                        class="form-control" 
-                        id="nama" 
-                        name="nama" 
-                        required 
-                        placeholder="Masukkan nama lengkap Anda"
-                        value="<?= isset($_POST['nama']) ? sanitize($_POST['nama']) : '' ?>"
-                    >
-                    <div class="invalid-feedback">Nama lengkap wajib diisi (minimal 3 karakter, hanya huruf).</div>
-                    <div class="valid-feedback">Nama valid!</div>
-                </div>
-
-                <!-- Email -->
-                <div class="mb-3">
-                    <label for="email" class="form-label">
-                        <i class="fas fa-envelope"></i>
-                        <span>Email <span class="required">*</span></span>
-                    </label>
-                    <input 
-                        type="email" 
-                        class="form-control" 
-                        id="email" 
-                        name="email" 
-                        required 
-                        placeholder="nama@email.com"
-                        value="<?= isset($_POST['email']) ? sanitize($_POST['email']) : '' ?>"
-                    >
-                    <div class="invalid-feedback">Email wajib diisi dengan format yang benar.</div>
-                    <div class="valid-feedback">Email valid!</div>
-                </div>
-
-                <!-- No. Telepon -->
-                <div class="mb-3">
-                    <label for="no_telepon" class="form-label">
-                        <i class="fas fa-phone"></i>
-                        <span>No. Telepon</span>
-                    </label>
-                    <input 
-                        type="tel" 
-                        class="form-control" 
-                        id="no_telepon" 
-                        name="no_telepon" 
-                        placeholder="08xxxxxxxxxx"
-                        value="<?= isset($_POST['no_telepon']) ? sanitize($_POST['no_telepon']) : '' ?>"
-                    >
-                    <div class="invalid-feedback">Format nomor telepon tidak valid (gunakan 08xxxxxxxxxx).</div>
-                    <div class="valid-feedback">Nomor telepon valid!</div>
-                </div>
-
-                <!-- Password -->
-                <div class="mb-3">
-                    <label for="password" class="form-label">
-                        <i class="fas fa-lock"></i>
-                        <span>Password <span class="required">*</span></span>
-                    </label>
-                    <input 
-                        type="password" 
-                        class="form-control" 
-                        id="password" 
-                        name="password" 
-                        required 
-                        placeholder="Minimal 6 karakter"
-                    >
-                    <div class="password-strength">
-                        <div class="password-strength-bar"></div>
-                    </div>
-                    <small class="password-hint">Gunakan kombinasi huruf, angka, dan simbol untuk keamanan maksimal</small>
-                    <div class="invalid-feedback">Password minimal 6 karakter.</div>
-                </div>
-
-                <!-- Konfirmasi Password -->
-                <div class="mb-3">
-                    <label for="confirm_password" class="form-label">
-                        <i class="fas fa-lock"></i>
-                        <span>Konfirmasi Password <span class="required">*</span></span>
-                    </label>
-                    <input 
-                        type="password" 
-                        class="form-control" 
-                        id="confirm_password" 
-                        name="confirm_password" 
-                        required 
-                        placeholder="Ulangi password Anda"
-                    >
-                    <div class="invalid-feedback">Password tidak sama!</div>
-                    <div class="valid-feedback">Password cocok!</div>
-                </div>
-
-                <!-- Alamat -->
-                <div class="mb-4">
-                    <label for="alamat" class="form-label">
-                        <i class="fas fa-map-marker-alt"></i>
-                        <span>Alamat</span>
-                    </label>
-                    <textarea 
-                        class="form-control" 
-                        id="alamat" 
-                        name="alamat" 
-                        rows="3" 
-                        placeholder="Masukkan alamat lengkap Anda (opsional)"
-                    ><?= isset($_POST['alamat']) ? sanitize($_POST['alamat']) : '' ?></textarea>
-                    <div class="invalid-feedback">Alamat minimal 10 karakter jika diisi.</div>
-                </div>
-
-                <!-- Terms & Conditions -->
-                <div class="mb-4">
-                    <div class="form-check">
-                        <input 
-                            type="checkbox" 
-                            class="form-check-input" 
-                            id="terms" 
-                            name="terms" 
-                            required
-                        >
-                        <label class="form-check-label" for="terms">
-                            Saya setuju dengan <a href="#" data-terms>Syarat & Ketentuan</a> dan <a href="#" data-privacy>Kebijakan Privasi</a> yang berlaku
+                <div class="form-grid">
+                    <!-- Nama Lengkap -->
+                    <div class="mb-3">
+                        <label for="nama" class="form-label">
+                            <i class="fas fa-user"></i>
+                            <span>Nama Lengkap <span class="required">*</span></span>
                         </label>
-                        <div class="invalid-feedback">Anda harus menyetujui syarat dan ketentuan.</div>
+                        <input 
+                            type="text" 
+                            class="form-control" 
+                            id="nama" 
+                            name="nama" 
+                            required 
+                            placeholder="Masukkan nama lengkap"
+                        >
+                        <div class="invalid-feedback">Minimal 3 karakter, hanya huruf</div>
+                    </div>
+
+                    <!-- Email -->
+                    <div class="mb-3">
+                        <label for="email" class="form-label">
+                            <i class="fas fa-envelope"></i>
+                            <span>Email <span class="required">*</span></span>
+                        </label>
+                        <input 
+                            type="email" 
+                            class="form-control" 
+                            id="email" 
+                            name="email" 
+                            required 
+                            placeholder="nama@email.com"
+                        >
+                        <div class="invalid-feedback">Format email tidak valid</div>
+                    </div>
+
+                    <!-- No. Telepon -->
+                    <div class="mb-3">
+                        <label for="no_telepon" class="form-label">
+                            <i class="fas fa-phone"></i>
+                            <span>No. Telepon</span>
+                        </label>
+                        <input 
+                            type="tel" 
+                            class="form-control" 
+                            id="no_telepon" 
+                            name="no_telepon" 
+                            placeholder="08xxxxxxxxxx"
+                        >
+                        <div class="invalid-feedback">Format tidak valid (08xxxxxxxxxx)</div>
+                    </div>
+
+                    <!-- Alamat -->
+                    <div class="mb-3">
+                        <label for="alamat" class="form-label">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span>Alamat</span>
+                        </label>
+                        <textarea 
+                            class="form-control" 
+                            id="alamat" 
+                            name="alamat" 
+                            rows="2" 
+                            placeholder="Alamat lengkap (opsional)"
+                        ></textarea>
+                        <div class="invalid-feedback">Minimal 10 karakter jika diisi</div>
+                    </div>
+
+                    <!-- Password -->
+                    <div class="mb-3">
+                        <label for="password" class="form-label">
+                            <i class="fas fa-lock"></i>
+                            <span>Password <span class="required">*</span></span>
+                        </label>
+                        <input 
+                            type="password" 
+                            class="form-control" 
+                            id="password" 
+                            name="password" 
+                            required 
+                            placeholder="Minimal 6 karakter"
+                        >
+                        <div class="password-strength">
+                            <div class="password-strength-bar"></div>
+                        </div>
+                        <small class="password-hint">Gunakan kombinasi huruf, angka, dan simbol</small>
+                        <div class="invalid-feedback">Password minimal 6 karakter</div>
+                    </div>
+
+                    <!-- Konfirmasi Password -->
+                    <div class="mb-3">
+                        <label for="confirm_password" class="form-label">
+                            <i class="fas fa-lock"></i>
+                            <span>Konfirmasi Password <span class="required">*</span></span>
+                        </label>
+                        <input 
+                            type="password" 
+                            class="form-control" 
+                            id="confirm_password" 
+                            name="confirm_password" 
+                            required 
+                            placeholder="Ulangi password"
+                        >
+                        <div class="invalid-feedback">Password tidak sama!</div>
+                        <div class="valid-feedback">Password cocok!</div>
+                    </div>
+
+                    <!-- Terms & Conditions -->
+                    <div class="mb-3 full-width">
+                        <div class="form-check">
+                            <input 
+                                type="checkbox" 
+                                class="form-check-input" 
+                                id="terms" 
+                                name="terms" 
+                                required
+                            >
+                            <label class="form-check-label" for="terms">
+                                Saya setuju dengan <a href="#" data-terms>Syarat & Ketentuan</a> dan <a href="#" data-privacy>Kebijakan Privasi</a>
+                            </label>
+                            <div class="invalid-feedback">Anda harus menyetujui syarat dan ketentuan</div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="full-width">
+                        <button type="submit" class="btn btn-register">
+                            <i class="fas fa-user-plus me-2"></i>
+                            Daftar Sekarang
+                        </button>
                     </div>
                 </div>
-
-                <!-- Submit Button -->
-                <button type="submit" class="btn btn-register">
-                    <i class="fas fa-user-plus me-2"></i>
-                    Daftar Sekarang
-                </button>
             </form>
 
             <!-- Links -->
@@ -808,10 +763,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <span>Sudah punya akun?</span> 
                     <a href="/login">Masuk disini</a>
                 </p>
-                
-                <div class="divider">
-                    <span>atau</span>
-                </div>
                 
                 <a href="/">
                     <i class="fas fa-arrow-left me-1"></i>
@@ -833,12 +784,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             if (validateForm()) {
                 showLoadingOverlay();
-                form.submit();
+                // form.submit(); // Uncomment untuk submit sebenarnya
             } else {
                 // Scroll ke error pertama
                 const firstInvalid = form.querySelector('.is-invalid');
                 if (firstInvalid) {
-                    firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     firstInvalid.focus();
                 }
             }
@@ -1086,15 +1036,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         window.addEventListener('load', () => {
             document.getElementById('nama').focus();
         });
-
-        // Auto dismiss alerts
-        setTimeout(() => {
-            const alerts = document.querySelectorAll('.alert');
-            alerts.forEach(alert => {
-                const bsAlert = new bootstrap.Alert(alert);
-                bsAlert.close();
-            });
-        }, 5000);
     </script>
 </body>
 </html>
