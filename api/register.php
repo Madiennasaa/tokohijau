@@ -806,7 +806,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="register-links">
                 <p>
                     <span>Sudah punya akun?</span> 
-                    <a href="login.php">Masuk disini</a>
+                    <a href="/login">Masuk disini</a>
                 </p>
                 
                 <div class="divider">
