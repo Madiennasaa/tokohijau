@@ -1,33 +1,50 @@
 <?php
+session_start();
 require_once 'koneksi.php'; // pastikan $pdo tersedia
 
-// Fungsi sanitasi input
+// Fungsi sanitasi input (untuk display saja, bukan untuk data yang di-hash)
 function sanitize($str) {
     return htmlspecialchars(trim($str), ENT_QUOTES, 'UTF-8');
 }
 
-// Inisialisasi alert
-$alert = '';
-$alertClass = '';
+// Fungsi untuk membersihkan input (tanpa htmlspecialchars untuk password)
+function cleanInput($str) {
+    return trim($str);
+}
+
+// Inisialisasi alert dari session
+$alert = $_SESSION['alert'] ?? '';
+$alertClass = $_SESSION['alert_class'] ?? '';
+unset($_SESSION['alert'], $_SESSION['alert_class']);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
-        // Ambil input
-        $nama       = sanitize($_POST['nama'] ?? '');
-        $email      = sanitize($_POST['email'] ?? '');
-        $password   = $_POST['password'] ?? '';
+        // CSRF Protection (tambahkan token di form jika diperlukan)
+        
+        // Ambil input - PENTING: jangan sanitize password!
+        $nama       = cleanInput($_POST['nama'] ?? '');
+        $email      = cleanInput($_POST['email'] ?? '');
+        $password   = $_POST['password'] ?? ''; // NO TRIM untuk password
         $confirm    = $_POST['confirm_password'] ?? '';
-        $no_telepon = sanitize($_POST['no_telepon'] ?? '');
-        $alamat     = sanitize($_POST['alamat'] ?? '');
+        $no_telepon = cleanInput($_POST['no_telepon'] ?? '');
+        $alamat     = cleanInput($_POST['alamat'] ?? '');
 
         // Validasi wajib
-        if ($nama === '' || $email === '' || $password === '') {
+        if (empty($nama) || empty($email) || empty($password)) {
             throw new Exception('Nama, email, dan password wajib diisi.');
+        }
+
+        // Validasi nama (minimal 3 karakter, hanya huruf dan spasi)
+        if (strlen($nama) < 3) {
+            throw new Exception('Nama minimal 3 karakter.');
+        }
+        if (!preg_match('/^[a-zA-Z\s]+$/', $nama)) {
+            throw new Exception('Nama hanya boleh berisi huruf dan spasi.');
         }
 
         // Validasi email
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            throw new Exception('Email tidak valid.');
+            throw new Exception('Format email tidak valid.');
         }
 
         // Validasi password
@@ -35,43 +52,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception('Password minimal 6 karakter.');
         }
         if ($password !== $confirm) {
-            throw new Exception('Password dan konfirmasi tidak sama.');
+            throw new Exception('Password dan konfirmasi password tidak sama.');
         }
 
-        // Validasi no_telepon (opsional)
-        if ($no_telepon && !preg_match('/^\d{9,15}$/', $no_telepon)) {
-            throw new Exception('No. telepon tidak valid (9-15 digit).');
+        // Validasi no_telepon (opsional, format Indonesia)
+        if (!empty($no_telepon)) {
+            // Hapus karakter non-digit
+            $no_telepon_clean = preg_replace('/[^0-9]/', '', $no_telepon);
+            
+            // Validasi format Indonesia: 08xxxxxxxxxx atau 628xxxxxxxxxx (10-13 digit)
+            if (!preg_match('/^(08|628)\d{8,11}$/', $no_telepon_clean)) {
+                throw new Exception('Format nomor telepon tidak valid. Gunakan format: 08xxxxxxxxxx');
+            }
+            
+            $no_telepon = $no_telepon_clean;
+        }
+
+        // Validasi alamat (opsional, minimal 10 karakter jika diisi)
+        if (!empty($alamat) && strlen($alamat) < 10) {
+            throw new Exception('Alamat minimal 10 karakter jika diisi.');
         }
 
         // Cek email unik
         $stmt = $pdo->prepare("SELECT id_pengguna FROM pengguna WHERE email = ?");
         $stmt->execute([$email]);
         if ($stmt->fetch()) {
-            throw new Exception('Email sudah terdaftar.');
+            throw new Exception('Email sudah terdaftar. Silakan gunakan email lain atau login.');
         }
 
-        // Hash password
-        $password_hash = password_hash($password, PASSWORD_DEFAULT);
+        // Hash password dengan BCRYPT
+        $password_hash = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
 
-        // Insert user
+        // Insert user dengan prepared statement
         $stmt = $pdo->prepare("
             INSERT INTO pengguna 
             (nama, email, password, no_telepon, alamat, role, status, tanggal_daftar)
             VALUES (?, ?, ?, ?, ?, 'user', 'aktif', NOW())
         ");
-        $stmt->execute([
+        
+        $result = $stmt->execute([
             $nama,
             $email,
             $password_hash,
-            $no_telepon,
-            $alamat
+            $no_telepon ?: null, // NULL jika kosong
+            $alamat ?: null      // NULL jika kosong
         ]);
 
+        if (!$result) {
+            throw new Exception('Gagal menyimpan data. Silakan coba lagi.');
+        }
+
+        // Set success message di session
+        $_SESSION['alert'] = 'Registrasi berhasil! Silakan login dengan akun Anda.';
+        $_SESSION['alert_class'] = 'success';
+
         // Registrasi sukses → redirect ke login
-        header('Location: login.php?registered=1');
+        header('Location: login.php');
         exit;
 
-    } catch (Throwable $e) {
+    } catch (PDOException $e) {
+        // Log error untuk debugging (jangan tampilkan ke user)
+        error_log("Registration error: " . $e->getMessage());
+        $alert = 'Terjadi kesalahan sistem. Silakan coba lagi nanti.';
+        $alertClass = 'danger';
+        
+    } catch (Exception $e) {
         $alert = $e->getMessage();
         $alertClass = 'danger';
     }
@@ -92,106 +137,77 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             --dark-green: #16a34a;
             --light-green: #dcfce7;
             --gradient-1: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-            --gradient-2: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(22, 163, 74, 0.1) 100%);
         }
 
         * {
-            transition: all 0.3s ease;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
-            height: 100vh;
-            overflow: hidden;
+            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 2rem 1rem;
             position: relative;
-            margin: 0;
-            padding: 0;
+            overflow-x: hidden;
         }
 
         /* Background Decorations */
         .bg-decoration {
             position: absolute;
             border-radius: 50%;
-            opacity: 0.1;
+            opacity: 0.08;
+            z-index: 1;
         }
 
         .bg-decoration:nth-child(1) {
-            width: 200px;
-            height: 200px;
+            width: 300px;
+            height: 300px;
             background: var(--gradient-1);
-            top: -100px;
-            left: -100px;
+            top: -150px;
+            left: -150px;
             animation: float 8s ease-in-out infinite;
         }
 
         .bg-decoration:nth-child(2) {
-            width: 150px;
-            height: 150px;
+            width: 200px;
+            height: 200px;
             background: var(--gradient-1);
-            bottom: -75px;
-            right: -75px;
+            bottom: -100px;
+            right: -100px;
             animation: float 6s ease-in-out infinite reverse;
         }
 
         .bg-decoration:nth-child(3) {
-            width: 100px;
-            height: 100px;
+            width: 150px;
+            height: 150px;
             background: var(--gradient-1);
-            top: 30%;
+            top: 20%;
             right: 5%;
             animation: float 10s ease-in-out infinite;
         }
 
-        /* Floating Elements */
-        .floating-element {
-            position: absolute;
-            animation: float 6s ease-in-out infinite;
-            opacity: 0.3;
-        }
-
-        .floating-element:nth-child(4) { 
-            top: 10%; 
-            left: 10%; 
-            animation-delay: 0s; 
-            font-size: 1.5rem;
-            color: var(--primary-green);
-        }
-        .floating-element:nth-child(5) { 
-            top: 70%; 
-            right: 15%; 
-            animation-delay: 2s; 
-            font-size: 1.2rem;
-            color: var(--dark-green);
-        }
-        .floating-element:nth-child(6) { 
-            bottom: 15%; 
-            left: 20%; 
-            animation-delay: 4s; 
-            font-size: 1.8rem;
-            color: var(--primary-green);
-        }
-
-        /* Main Register Container */
+        /* Main Container */
         .register-container {
+            width: 100%;
+            max-width: 600px;
             position: relative;
             z-index: 10;
-            width: 100%;
-            max-width: 900px;
-            padding: 0 1rem;
         }
 
         .register-card {
             background: white;
-            border-radius: 20px;
-            padding: 1.25rem 1.75rem;
+            border-radius: 24px;
+            padding: 2.5rem 2rem;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
             border: 1px solid rgba(34, 197, 94, 0.1);
-            transition: all 0.3s ease;
             position: relative;
+            animation: fadeInUp 0.6s ease-out;
         }
 
         .register-card::before {
@@ -200,147 +216,130 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             top: 0;
             left: 0;
             right: 0;
-            height: 4px;
+            height: 5px;
             background: var(--gradient-1);
+            border-radius: 24px 24px 0 0;
         }
 
-        .register-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.1);
-        }
-
-        /* Header Section */
+        /* Header */
         .register-header {
             text-align: center;
-            margin-bottom: 1rem;
+            margin-bottom: 2rem;
         }
 
         .brand-icon {
-            width: 45px;
-            height: 45px;
+            width: 70px;
+            height: 70px;
             background: var(--gradient-1);
-            border-radius: 12px;
+            border-radius: 20px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 0.6rem;
-            font-size: 1.2rem;
+            margin: 0 auto 1rem;
+            font-size: 2rem;
             color: white;
-            box-shadow: 0 6px 20px rgba(34, 197, 94, 0.3);
+            box-shadow: 0 8px 25px rgba(34, 197, 94, 0.3);
             animation: pulse 2s infinite;
         }
 
         .brand-title {
-            font-size: 1.35rem;
+            font-size: 2rem;
             font-weight: 700;
             background: var(--gradient-1);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.5rem;
         }
 
         .brand-subtitle {
             color: #6b7280;
-            font-size: 0.8rem;
-            margin-bottom: 0;
+            font-size: 1rem;
         }
 
-        /* Alert Styles */
+        /* Alert */
         .alert {
             border: none;
-            border-radius: 10px;
-            padding: 0.5rem 0.75rem;
-            margin-bottom: 0.75rem;
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            margin-bottom: 1.5rem;
             font-weight: 500;
-            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
         }
 
         .alert-danger {
             background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.1) 100%);
             color: #dc2626;
-            border-left: 3px solid #ef4444;
+            border-left: 4px solid #ef4444;
         }
 
         .alert-success {
             background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(22, 163, 74, 0.1) 100%);
             color: var(--dark-green);
-            border-left: 3px solid var(--primary-green);
+            border-left: 4px solid var(--primary-green);
         }
 
-        /* Form Styles */
+        /* Form */
         .form-label {
             font-weight: 600;
             color: #374151;
-            margin-bottom: 0.3rem;
+            margin-bottom: 0.5rem;
             display: flex;
             align-items: center;
-            font-size: 0.8rem;
+            font-size: 0.95rem;
         }
 
         .form-label i {
-            margin-right: 0.4rem;
+            margin-right: 0.5rem;
             color: var(--primary-green);
-            font-size: 0.75rem;
+            width: 16px;
+        }
+
+        .form-label .required {
+            color: #ef4444;
+            margin-left: 0.25rem;
         }
 
         .form-control, .form-select {
             border: 2px solid #e5e7eb;
-            border-radius: 10px;
-            padding: 0.45rem 0.75rem;
-            font-size: 0.85rem;
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
+            font-size: 0.95rem;
             transition: all 0.3s ease;
             background: #fafafa;
         }
 
         .form-control:focus, .form-select:focus {
             border-color: var(--primary-green);
-            box-shadow: 0 0 0 0.15rem rgba(34, 197, 94, 0.2);
+            box-shadow: 0 0 0 0.25rem rgba(34, 197, 94, 0.15);
+            background: white;
+            outline: none;
+        }
+
+        .form-control:hover {
+            border-color: var(--primary-green);
             background: white;
         }
 
-        .form-control:hover, .form-select:hover {
-            border-color: var(--primary-green);
-            background: white;
+        textarea.form-control {
+            resize: vertical;
+            min-height: 100px;
         }
 
-        .form-check-input:checked {
-            background-color: var(--primary-green);
-            border-color: var(--primary-green);
-        }
-
-        .form-check-input:focus {
-            border-color: var(--primary-green);
-            box-shadow: 0 0 0 0.2rem rgba(34, 197, 94, 0.2);
-        }
-
-        .form-check-label {
-            color: #374151;
-            font-weight: 500;
-            font-size: 0.8rem;
-        }
-
-        .mb-3 {
-            margin-bottom: 0.7rem !important;
-        }
-
-        .mb-4 {
-            margin-bottom: 0.85rem !important;
-        }
-
-        /* Password Strength Indicator */
+        /* Password Strength */
         .password-strength {
-            height: 3px;
+            height: 4px;
             background: #e5e7eb;
             border-radius: 2px;
-            margin-top: 0.4rem;
+            margin-top: 0.5rem;
             overflow: hidden;
         }
 
         .password-strength-bar {
             height: 100%;
             width: 0%;
-            background: var(--gradient-1);
             transition: all 0.3s ease;
         }
 
@@ -359,141 +358,179 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             background: var(--gradient-1);
         }
 
-        /* Button Styles */
+        .password-hint {
+            font-size: 0.8rem;
+            color: #6b7280;
+            margin-top: 0.25rem;
+        }
+
+        /* Checkbox */
+        .form-check {
+            padding-left: 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+
+        .form-check-input {
+            width: 20px;
+            height: 20px;
+            margin-top: 0.25rem;
+            border: 2px solid #d1d5db;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .form-check-input:checked {
+            background-color: var(--primary-green);
+            border-color: var(--primary-green);
+        }
+
+        .form-check-input:focus {
+            border-color: var(--primary-green);
+            box-shadow: 0 0 0 0.25rem rgba(34, 197, 94, 0.15);
+        }
+
+        .form-check-label {
+            color: #4b5563;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            cursor: pointer;
+        }
+
+        .form-check-label a {
+            color: var(--primary-green);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .form-check-label a:hover {
+            color: var(--dark-green);
+            text-decoration: underline;
+        }
+
+        /* Button */
         .btn-register {
             background: var(--gradient-1);
             border: none;
             color: white;
             font-weight: 600;
-            padding: 0.55rem 1.5rem;
-            border-radius: 10px;
-            font-size: 0.9rem;
-            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-size: 1.05rem;
+            box-shadow: 0 6px 20px rgba(34, 197, 94, 0.3);
             transition: all 0.3s ease;
             width: 100%;
             position: relative;
             overflow: hidden;
-        }
-
-        .btn-register::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s;
+            margin-top: 1rem;
         }
 
         .btn-register:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
-            color: white;
+            box-shadow: 0 8px 30px rgba(34, 197, 94, 0.4);
         }
 
-        .btn-register:hover::before {
-            left: 100%;
+        .btn-register:active {
+            transform: translateY(0);
         }
 
         /* Links */
         .register-links {
             text-align: center;
-            margin-top: 0.85rem;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .register-links p {
+            margin-bottom: 0.75rem;
+            color: #6b7280;
+            font-size: 0.95rem;
         }
 
         .register-links a {
             color: var(--primary-green);
             text-decoration: none;
-            font-weight: 500;
+            font-weight: 600;
             transition: all 0.3s ease;
-            position: relative;
-            font-size: 0.8rem;
         }
 
         .register-links a:hover {
             color: var(--dark-green);
-        }
-
-        .register-links a::after {
-            content: '';
-            position: absolute;
-            width: 0;
-            height: 2px;
-            bottom: -2px;
-            left: 50%;
-            background: var(--gradient-1);
-            transition: all 0.3s ease;
-            transform: translateX(-50%);
-        }
-
-        .register-links a:hover::after {
-            width: 100%;
-        }
-
-        .text-muted {
-            color: #6b7280 !important;
-            font-size: 0.8rem;
+            text-decoration: underline;
         }
 
         .divider {
-            padding: 0 0 6px 0;
-            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin: 1rem 0;
+            color: #9ca3af;
+            font-size: 0.85rem;
         }
 
-        .mb-2 {
-            margin-bottom: 0.4rem !important;
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .divider span {
+            padding: 0 1rem;
         }
 
         /* Validation States */
         .form-control.is-valid {
             border-color: var(--primary-green);
-            padding-right: 2.25rem;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%2322c55e' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1.2rem;
+            padding-right: 3rem;
         }
 
         .form-control.is-invalid {
             border-color: #ef4444;
-            padding-right: 2.25rem;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23ef4444'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23ef4444' stroke='none'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1.2rem;
+            padding-right: 3rem;
+        }
+
+        .invalid-feedback,
+        .valid-feedback {
+            display: none;
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 500;
         }
 
         .invalid-feedback {
-            display: none;
-            width: 100%;
-            margin-top: 0.2rem;
-            font-size: 0.75rem;
             color: #ef4444;
         }
 
-        .is-invalid ~ .invalid-feedback {
-            display: block;
-        }
-
         .valid-feedback {
-            display: none;
-            width: 100%;
-            margin-top: 0.2rem;
-            font-size: 0.75rem;
             color: var(--primary-green);
         }
 
-        .is-valid ~ .valid-feedback {
+        .form-control.is-invalid ~ .invalid-feedback {
             display: block;
         }
 
-        /* Terms and Conditions */
-        .terms-text {
-            font-size: 0.75rem;
-            color: #6b7280;
-            line-height: 1.3;
+        .form-control.is-valid ~ .valid-feedback {
+            display: block;
         }
 
-        .terms-text a {
-            color: var(--primary-green);
-            text-decoration: none;
+        /* Spacing */
+        .mb-3 {
+            margin-bottom: 1.25rem !important;
         }
 
-        .terms-text a:hover {
-            text-decoration: underline;
+        .mb-4 {
+            margin-bottom: 1.75rem !important;
         }
 
         /* Animations */
@@ -509,13 +546,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         @keyframes float {
-            0%, 100% { transform: translateY(0px) rotate(0deg); }
-            50% { transform: translateY(-15px) rotate(3deg); }
+            0%, 100% { 
+                transform: translateY(0px) rotate(0deg); 
+            }
+            50% { 
+                transform: translateY(-20px) rotate(5deg); 
+            }
         }
 
         @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
+            0%, 100% { 
+                transform: scale(1); 
+            }
+            50% { 
+                transform: scale(1.05); 
+            }
         }
 
         @keyframes spin {
@@ -523,62 +568,74 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             to { transform: rotate(360deg); }
         }
 
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            backdrop-filter: blur(5px);
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #e5e7eb;
+            border-top: 4px solid var(--primary-green);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
-            .register-card {
-                padding: 1rem 1.25rem;
-            }
-            
-            .brand-title {
-                font-size: 1.2rem;
+            body {
+                padding: 1rem 0.75rem;
             }
 
-            .floating-element, .bg-decoration {
+            .register-card {
+                padding: 2rem 1.5rem;
+            }
+
+            .brand-icon {
+                width: 60px;
+                height: 60px;
+                font-size: 1.75rem;
+            }
+
+            .brand-title {
+                font-size: 1.75rem;
+            }
+
+            .bg-decoration {
                 display: none;
             }
         }
 
-        @media (max-height: 800px) {
+        @media (max-height: 700px) {
+            .register-card {
+                padding: 1.5rem;
+            }
+
             .brand-icon {
-                width: 40px;
-                height: 40px;
-                font-size: 1.1rem;
-                margin-bottom: 0.5rem;
-            }
-            
-            .brand-title {
-                font-size: 1.2rem;
-            }
-            
-            .register-header {
+                width: 50px;
+                height: 50px;
+                font-size: 1.5rem;
                 margin-bottom: 0.75rem;
             }
-            
-            .form-control, .form-select {
-                padding: 0.4rem 0.7rem;
-            }
-            
-            .btn-register {
-                padding: 0.5rem 1.25rem;
+
+            .register-header {
+                margin-bottom: 1.5rem;
             }
 
             .mb-3 {
-                margin-bottom: 0.55rem !important;
+                margin-bottom: 1rem !important;
             }
-
-            .mb-4 {
-                margin-bottom: 0.7rem !important;
-            }
-
-            .alert {
-                padding: 0.4rem 0.6rem;
-                margin-bottom: 0.6rem;
-            }
-        }
-
-        /* Page Load Animation */
-        .register-container {
-            animation: fadeInUp 0.8s ease-out;
         }
     </style>
 </head>
@@ -587,17 +644,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="bg-decoration"></div>
     <div class="bg-decoration"></div>
     <div class="bg-decoration"></div>
-    
-    <!-- Floating Elements -->
-    <div class="floating-element">
-        <i class="fas fa-seedling"></i>
-    </div>
-    <div class="floating-element">
-        <i class="fas fa-leaf"></i>
-    </div>
-    <div class="floating-element">
-        <i class="fas fa-tree"></i>
-    </div>
 
     <div class="register-container">
         <div class="register-card">
@@ -606,109 +652,168 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="brand-icon">
                     <i class="fas fa-user-plus"></i>
                 </div>
-                <h2 class="brand-title">Toko Hijau</h2>
+                <h1 class="brand-title">Toko Hijau</h1>
                 <p class="brand-subtitle">Bergabunglah dengan komunitas kami</p>
             </div>
-            
+
             <!-- Alert Messages -->
-            <div id="alertContainer">
-                <?php if ($alert): ?>
-                    <div class="alert alert-<?= $alertClass ?> alert-dismissible fade show" role="alert">
-                        <i class="fas <?= $alertClass === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle' ?> me-2"></i>
-                        <?= $alert ?>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                <?php endif; ?>
-            </div>
+            <?php if ($alert): ?>
+                <div class="alert alert-<?= $alertClass ?> alert-dismissible fade show" role="alert">
+                    <i class="fas <?= $alertClass === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle' ?>"></i>
+                    <span><?= sanitize($alert) ?></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <?php endif; ?>
 
             <!-- Register Form -->
-            <form id="registerForm" method="POST" action="">
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <label for="nama" class="form-label">
-                            <i class="fas fa-user"></i>
-                            Nama Lengkap
-                        </label>
-                        <input type="text" class="form-control" id="nama" name="nama" required placeholder="Nama lengkap">
-                        <div class="invalid-feedback">Nama harus diisi.</div>
-                    </div>
-                    
-                    <div class="col-md-4 mb-3">
-                        <label for="email" class="form-label">
-                            <i class="fas fa-envelope"></i>
-                            Email
-                        </label>
-                        <input type="email" class="form-control" id="email" name="email" required placeholder="nama@email.com">
-                        <div class="invalid-feedback">Email harus valid.</div>
-                    </div>
-
-                    <div class="col-md-4 mb-3">
-                        <label for="no_telepon" class="form-label">
-                            <i class="fas fa-phone"></i>
-                            No. Telepon
-                        </label>
-                        <input type="tel" class="form-control" id="no_telepon" name="no_telepon" placeholder="08xxxxxxxxxx">
-                    </div>
-                </div>
-                
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="password" class="form-label">
-                            <i class="fas fa-lock"></i>
-                            Password
-                        </label>
-                        <input type="password" class="form-control" id="password" name="password" required placeholder="Min. 6 karakter">
-                        <div class="password-strength">
-                            <div class="password-strength-bar"></div>
-                        </div>
-                        <div class="invalid-feedback">Min. 6 karakter.</div>
-                    </div>
-                    
-                    <div class="col-md-6 mb-3">
-                        <label for="confirm_password" class="form-label">
-                            <i class="fas fa-lock"></i>
-                            Konfirmasi Password
-                        </label>
-                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" required placeholder="Ulangi password">
-                        <div class="invalid-feedback">Password tidak sama.</div>
-                    </div>
-                </div>
-                
+            <form id="registerForm" method="POST" action="" novalidate>
+                <!-- Nama Lengkap -->
                 <div class="mb-3">
+                    <label for="nama" class="form-label">
+                        <i class="fas fa-user"></i>
+                        <span>Nama Lengkap <span class="required">*</span></span>
+                    </label>
+                    <input 
+                        type="text" 
+                        class="form-control" 
+                        id="nama" 
+                        name="nama" 
+                        required 
+                        placeholder="Masukkan nama lengkap Anda"
+                        value="<?= isset($_POST['nama']) ? sanitize($_POST['nama']) : '' ?>"
+                    >
+                    <div class="invalid-feedback">Nama lengkap wajib diisi (minimal 3 karakter, hanya huruf).</div>
+                    <div class="valid-feedback">Nama valid!</div>
+                </div>
+
+                <!-- Email -->
+                <div class="mb-3">
+                    <label for="email" class="form-label">
+                        <i class="fas fa-envelope"></i>
+                        <span>Email <span class="required">*</span></span>
+                    </label>
+                    <input 
+                        type="email" 
+                        class="form-control" 
+                        id="email" 
+                        name="email" 
+                        required 
+                        placeholder="nama@email.com"
+                        value="<?= isset($_POST['email']) ? sanitize($_POST['email']) : '' ?>"
+                    >
+                    <div class="invalid-feedback">Email wajib diisi dengan format yang benar.</div>
+                    <div class="valid-feedback">Email valid!</div>
+                </div>
+
+                <!-- No. Telepon -->
+                <div class="mb-3">
+                    <label for="no_telepon" class="form-label">
+                        <i class="fas fa-phone"></i>
+                        <span>No. Telepon</span>
+                    </label>
+                    <input 
+                        type="tel" 
+                        class="form-control" 
+                        id="no_telepon" 
+                        name="no_telepon" 
+                        placeholder="08xxxxxxxxxx"
+                        value="<?= isset($_POST['no_telepon']) ? sanitize($_POST['no_telepon']) : '' ?>"
+                    >
+                    <div class="invalid-feedback">Format nomor telepon tidak valid (gunakan 08xxxxxxxxxx).</div>
+                    <div class="valid-feedback">Nomor telepon valid!</div>
+                </div>
+
+                <!-- Password -->
+                <div class="mb-3">
+                    <label for="password" class="form-label">
+                        <i class="fas fa-lock"></i>
+                        <span>Password <span class="required">*</span></span>
+                    </label>
+                    <input 
+                        type="password" 
+                        class="form-control" 
+                        id="password" 
+                        name="password" 
+                        required 
+                        placeholder="Minimal 6 karakter"
+                    >
+                    <div class="password-strength">
+                        <div class="password-strength-bar"></div>
+                    </div>
+                    <small class="password-hint">Gunakan kombinasi huruf, angka, dan simbol untuk keamanan maksimal</small>
+                    <div class="invalid-feedback">Password minimal 6 karakter.</div>
+                </div>
+
+                <!-- Konfirmasi Password -->
+                <div class="mb-3">
+                    <label for="confirm_password" class="form-label">
+                        <i class="fas fa-lock"></i>
+                        <span>Konfirmasi Password <span class="required">*</span></span>
+                    </label>
+                    <input 
+                        type="password" 
+                        class="form-control" 
+                        id="confirm_password" 
+                        name="confirm_password" 
+                        required 
+                        placeholder="Ulangi password Anda"
+                    >
+                    <div class="invalid-feedback">Password tidak sama!</div>
+                    <div class="valid-feedback">Password cocok!</div>
+                </div>
+
+                <!-- Alamat -->
+                <div class="mb-4">
                     <label for="alamat" class="form-label">
                         <i class="fas fa-map-marker-alt"></i>
-                        Alamat
+                        <span>Alamat</span>
                     </label>
-                    <textarea class="form-control" id="alamat" name="alamat" rows="2" placeholder="Alamat lengkap"></textarea>
+                    <textarea 
+                        class="form-control" 
+                        id="alamat" 
+                        name="alamat" 
+                        rows="3" 
+                        placeholder="Masukkan alamat lengkap Anda (opsional)"
+                    ><?= isset($_POST['alamat']) ? sanitize($_POST['alamat']) : '' ?></textarea>
+                    <div class="invalid-feedback">Alamat minimal 10 karakter jika diisi.</div>
                 </div>
-                
+
+                <!-- Terms & Conditions -->
                 <div class="mb-4">
                     <div class="form-check">
-                        <input type="checkbox" class="form-check-input" id="terms" name="terms" required>
-                        <label class="form-check-label terms-text" for="terms">
-                            Saya setuju dengan <a href="#" id="termsLink">Syarat & Ketentuan</a> dan <a href="#" id="privacyLink">Kebijakan Privasi</a>
+                        <input 
+                            type="checkbox" 
+                            class="form-check-input" 
+                            id="terms" 
+                            name="terms" 
+                            required
+                        >
+                        <label class="form-check-label" for="terms">
+                            Saya setuju dengan <a href="#" data-terms>Syarat & Ketentuan</a> dan <a href="#" data-privacy>Kebijakan Privasi</a> yang berlaku
                         </label>
-                        <div class="invalid-feedback">Anda harus menyetujui.</div>
+                        <div class="invalid-feedback">Anda harus menyetujui syarat dan ketentuan.</div>
                     </div>
                 </div>
-                
+
+                <!-- Submit Button -->
                 <button type="submit" class="btn btn-register">
                     <i class="fas fa-user-plus me-2"></i>
                     Daftar Sekarang
                 </button>
             </form>
-            
+
             <!-- Links -->
             <div class="register-links">
-                <div class="mb-2">
-                    <span class="text-muted">Sudah punya akun?</span> <a href="/login_form">Masuk disini</a>
-                </div>
+                <p>
+                    <span>Sudah punya akun?</span> 
+                    <a href="login.php">Masuk disini</a>
+                </p>
                 
                 <div class="divider">
                     <span>atau</span>
                 </div>
                 
-                <a href="/" class="text-muted">
+                <a href="/">
                     <i class="fas fa-arrow-left me-1"></i>
                     Kembali ke Beranda
                 </a>
@@ -718,132 +823,217 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Form validation
-        document.getElementById('registerForm').addEventListener('submit', function(e) {
-            if (!validateForm()) {
-                e.preventDefault();
-                showAlert('⚠️ Mohon lengkapi semua field dengan benar.', 'danger');
+        // Form Validation
+        const form = document.getElementById('registerForm');
+        const inputs = form.querySelectorAll('.form-control, .form-check-input');
+
+        // Validasi saat submit
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (validateForm()) {
+                showLoadingOverlay();
+                form.submit();
             } else {
-                showLoadingOverlay(); // muncul loading
+                // Scroll ke error pertama
+                const firstInvalid = form.querySelector('.is-invalid');
+                if (firstInvalid) {
+                    firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    firstInvalid.focus();
+                }
             }
         });
 
+        // Validasi form lengkap
         function validateForm() {
             let isValid = true;
-            clearValidationStates();
             
-            const requiredFields = ['nama', 'email', 'password', 'confirm_password'];
-            requiredFields.forEach(field => {
-                const input = document.getElementById(field);
-                if (!input.value.trim()) {
-                    input.classList.add('is-invalid');
-                    isValid = false;
-                } else {
-                    input.classList.add('is-valid');
-                }
+            // Reset semua validasi
+            inputs.forEach(input => {
+                input.classList.remove('is-valid', 'is-invalid');
             });
             
+            // Validasi Nama
+            const nama = document.getElementById('nama');
+            if (!nama.value.trim() || nama.value.trim().length < 3 || !/^[a-zA-Z\s]+$/.test(nama.value.trim())) {
+                nama.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                nama.classList.add('is-valid');
+            }
+            
+            // Validasi Email
             const email = document.getElementById('email');
             const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (email.value && !emailPattern.test(email.value)) {
-                email.classList.remove('is-valid');
+            if (!email.value.trim() || !emailPattern.test(email.value.trim())) {
                 email.classList.add('is-invalid');
                 isValid = false;
+            } else {
+                email.classList.add('is-valid');
             }
             
+            // Validasi No. Telepon (opsional)
+            const noTelepon = document.getElementById('no_telepon');
+            if (noTelepon.value.trim()) {
+                const cleanPhone = noTelepon.value.replace(/[^0-9]/g, '');
+                if (!/^(08|628)\d{8,11}$/.test(cleanPhone)) {
+                    noTelepon.classList.add('is-invalid');
+                    isValid = false;
+                } else {
+                    noTelepon.classList.add('is-valid');
+                }
+            }
+            
+            // Validasi Password
             const password = document.getElementById('password');
-            if (password.value && password.value.length < 6) {
-                password.classList.remove('is-valid');
+            if (!password.value || password.value.length < 6) {
                 password.classList.add('is-invalid');
                 isValid = false;
+            } else {
+                password.classList.add('is-valid');
             }
             
+            // Validasi Konfirmasi Password
             const confirmPassword = document.getElementById('confirm_password');
             if (confirmPassword.value !== password.value) {
-                confirmPassword.classList.remove('is-valid');
                 confirmPassword.classList.add('is-invalid');
                 isValid = false;
+            } else if (confirmPassword.value) {
+                confirmPassword.classList.add('is-valid');
             }
             
+            // Validasi Alamat (opsional)
+            const alamat = document.getElementById('alamat');
+            if (alamat.value.trim() && alamat.value.trim().length < 10) {
+                alamat.classList.add('is-invalid');
+                isValid = false;
+            } else if (alamat.value.trim()) {
+                alamat.classList.add('is-valid');
+            }
+            
+            // Validasi Terms
             const terms = document.getElementById('terms');
             if (!terms.checked) {
                 terms.classList.add('is-invalid');
                 isValid = false;
+            } else {
+                terms.classList.add('is-valid');
             }
             
             return isValid;
         }
 
-        function clearValidationStates() {
-            const inputs = document.querySelectorAll('.form-control, .form-check-input');
-            inputs.forEach(input => {
-                input.classList.remove('is-valid', 'is-invalid');
-            });
-        }
-
         // Real-time validation
-        const formInputs = document.querySelectorAll('.form-control');
-        formInputs.forEach(input => {
+        inputs.forEach(input => {
+            // Validasi on blur
             input.addEventListener('blur', function() {
                 validateSingleField(this);
             });
             
+            // Validasi on input untuk field yang sudah invalid
             input.addEventListener('input', function() {
                 if (this.classList.contains('is-invalid')) {
                     validateSingleField(this);
                 }
                 
+                // Password strength indicator
                 if (this.id === 'password') {
                     updatePasswordStrength(this.value);
                 }
                 
-                if (this.id === 'confirm_password') {
+                // Validasi confirm password secara real-time
+                if (this.id === 'confirm_password' || this.id === 'password') {
                     const password = document.getElementById('password');
-                    if (this.value && password.value) {
-                        if (this.value === password.value) {
-                            this.classList.remove('is-invalid');
-                            this.classList.add('is-valid');
+                    const confirm = document.getElementById('confirm_password');
+                    
+                    if (confirm.value) {
+                        if (confirm.value === password.value) {
+                            confirm.classList.remove('is-invalid');
+                            confirm.classList.add('is-valid');
                         } else {
-                            this.classList.remove('is-valid');
-                            this.classList.add('is-invalid');
+                            confirm.classList.remove('is-valid');
+                            confirm.classList.add('is-invalid');
                         }
                     }
                 }
             });
         });
 
+        // Validasi single field
         function validateSingleField(field) {
             const value = field.value.trim();
             
-            if (field.hasAttribute('required') && !value) {
-                field.classList.remove('is-valid');
-                field.classList.add('is-invalid');
-                return false;
+            switch(field.id) {
+                case 'nama':
+                    if (!value || value.length < 3 || !/^[a-zA-Z\s]+$/.test(value)) {
+                        field.classList.add('is-invalid');
+                        field.classList.remove('is-valid');
+                    } else {
+                        field.classList.remove('is-invalid');
+                        field.classList.add('is-valid');
+                    }
+                    break;
+                    
+                case 'email':
+                    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!value || !emailPattern.test(value)) {
+                        field.classList.add('is-invalid');
+                        field.classList.remove('is-valid');
+                    } else {
+                        field.classList.remove('is-invalid');
+                        field.classList.add('is-valid');
+                    }
+                    break;
+                    
+                case 'no_telepon':
+                    if (value) {
+                        const cleanPhone = value.replace(/[^0-9]/g, '');
+                        if (!/^(08|628)\d{8,11}$/.test(cleanPhone)) {
+                            field.classList.add('is-invalid');
+                            field.classList.remove('is-valid');
+                        } else {
+                            field.classList.remove('is-invalid');
+                            field.classList.add('is-valid');
+                        }
+                    } else {
+                        field.classList.remove('is-invalid', 'is-valid');
+                    }
+                    break;
+                    
+                case 'password':
+                    if (!field.value || field.value.length < 6) {
+                        field.classList.add('is-invalid');
+                        field.classList.remove('is-valid');
+                    } else {
+                        field.classList.remove('is-invalid');
+                        field.classList.add('is-valid');
+                    }
+                    break;
+                    
+                case 'alamat':
+                    if (value && value.length < 10) {
+                        field.classList.add('is-invalid');
+                        field.classList.remove('is-valid');
+                    } else if (value) {
+                        field.classList.remove('is-invalid');
+                        field.classList.add('is-valid');
+                    } else {
+                        field.classList.remove('is-invalid', 'is-valid');
+                    }
+                    break;
+                    
+                case 'terms':
+                    if (!field.checked) {
+                        field.classList.add('is-invalid');
+                    } else {
+                        field.classList.remove('is-invalid');
+                        field.classList.add('is-valid');
+                    }
+                    break;
             }
-            
-            if (field.type === 'email' && value) {
-                const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                if (!emailPattern.test(value)) {
-                    field.classList.remove('is-valid');
-                    field.classList.add('is-invalid');
-                    return false;
-                }
-            }
-            
-            if (field.id === 'password' && value && value.length < 6) {
-                field.classList.remove('is-valid');
-                field.classList.add('is-invalid');
-                return false;
-            }
-            
-            if (value || field.id === 'password') {
-                field.classList.remove('is-invalid');
-                field.classList.add('is-valid');
-            }
-            
-            return true;
         }
 
+        // Password strength indicator
         function updatePasswordStrength(password) {
             const strengthIndicator = document.querySelector('.password-strength');
             let strength = 0;
@@ -866,91 +1056,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        function showAlert(message, type = 'danger') {
-            const alertContainer = document.getElementById('alertContainer');
-            const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
-            const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle';
-            
-            alertContainer.innerHTML = `
-                <div class="alert ${alertClass}">
-                    <i class="fas ${icon} me-2"></i>
-                    ${message}
-                </div>
-            `;
-            
-            setTimeout(() => {
-                alertContainer.innerHTML = '';
-            }, 5000);
-        }
-
-        document.getElementById('termsLink').addEventListener('click', function(e) {
-            e.preventDefault();
-            alert('Halaman Syarat & Ketentuan akan segera tersedia.');
-        });
-
-        document.getElementById('privacyLink').addEventListener('click', function(e) {
-            e.preventDefault();
-            alert('Halaman Kebijakan Privasi akan segera tersedia.');
-        });
-
-        window.addEventListener('mousemove', (e) => {
-            const floatingElements = document.querySelectorAll('.floating-element');
-            const mouseX = e.clientX / window.innerWidth;
-            const mouseY = e.clientY / window.innerHeight;
-            
-            floatingElements.forEach((element, index) => {
-                const speed = (index + 1) * 0.3;
-                const x = (mouseX - 0.5) * speed * 15;
-                const y = (mouseY - 0.5) * speed * 15;
-                
-                element.style.transform = `translate(${x}px, ${y}px)`;
-            });
-        });
-
-        window.addEventListener('load', () => {
-            document.getElementById('nama').focus();
-        });
-
+        // Loading overlay
         function showLoadingOverlay() {
             const overlay = document.createElement('div');
-            overlay.id = 'loadingOverlay';
+            overlay.className = 'loading-overlay';
             overlay.innerHTML = `
-                <div style="
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    background: rgba(255, 255, 255, 0.9);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    z-index: 9999;
-                    backdrop-filter: blur(5px);
-                ">
-                    <div style="text-align: center;">
-                        <div style="
-                            width: 50px;
-                            height: 50px;
-                            border: 4px solid #e5e7eb;
-                            border-top: 4px solid var(--primary-green);
-                            border-radius: 50%;
-                            animation: spin 1s linear infinite;
-                            margin: 0 auto 1rem;
-                        "></div>
-                        <p style="color: var(--dark-green); font-weight: 600; font-size: 0.9rem;">Memproses registrasi...</p>
-                    </div>
+                <div style="text-align: center;">
+                    <div class="loading-spinner"></div>
+                    <p style="margin-top: 1rem; color: var(--dark-green); font-weight: 600; font-size: 1rem;">
+                        Memproses registrasi...
+                    </p>
                 </div>
             `;
             document.body.appendChild(overlay);
         }
 
-        function hideLoadingOverlay() {
-            const overlay = document.getElementById('loadingOverlay');
-            if (overlay) {
-                overlay.remove();
-            }
-        }
+        // Terms & Privacy links
+        document.querySelector('[data-terms]').addEventListener('click', function(e) {
+            e.preventDefault();
+            alert('Halaman Syarat & Ketentuan akan segera tersedia.');
+        });
+
+        document.querySelector('[data-privacy]').addEventListener('click', function(e) {
+            e.preventDefault();
+            alert('Halaman Kebijakan Privasi akan segera tersedia.');
+        });
+
+        // Auto focus on first input
+        window.addEventListener('load', () => {
+            document.getElementById('nama').focus();
+        });
+
+        // Auto dismiss alerts
+        setTimeout(() => {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            });
+        }, 5000);
     </script>
 </body>
 </html>

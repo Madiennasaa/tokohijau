@@ -24,7 +24,6 @@ try {
         PDO::MYSQL_ATTR_SSL_CA => null,
     ]);
 
-    echo "✅ Koneksi TiDB Cloud BERHASIL";
 } catch (PDOException $e) {
     die("❌ ERROR: " . $e->getMessage());
 }
