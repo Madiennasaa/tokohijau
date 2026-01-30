@@ -21,20 +21,15 @@ if ($email === '' || $password === '') {
     exit;
 }
 
-// ================= AMBIL USER =================
-$stmt = $conn->prepare("SELECT * FROM pengguna WHERE email = ? LIMIT 1");
-$stmt->bind_param("s", $email);
-$stmt->execute();
+// ================= AMBIL USER (Gunakan $pdo) =================
+$stmt = $pdo->prepare("SELECT * FROM pengguna WHERE email = ? LIMIT 1");
+$stmt->execute([$email]);
+$user = $stmt->fetch();
 
-$result = $stmt->get_result();
-
-if ($result->num_rows !== 1) {
+if (!$user) {
     header('Location: /login?error=invalid');
     exit;
 }
-
-$user = $result->fetch_assoc();
-$stmt->close();
 
 // ================= CEK STATUS =================
 if ($user['status'] !== 'aktif') {
@@ -54,9 +49,9 @@ $_SESSION['nama']    = $user['nama'];
 $_SESSION['email']   = $user['email'];
 $_SESSION['role']    = $user['role'];
 
-// Optional: update last login
-$user_id = (int) $user['id_pengguna'];
-$conn->query("UPDATE pengguna SET tanggal_login = NOW() WHERE id_pengguna = $user_id");
+// Update last login (Gunakan PDO)
+$stmtUpdate = $pdo->prepare("UPDATE pengguna SET tanggal_daftar = NOW() WHERE id_pengguna = ?");
+$stmtUpdate->execute([$user['id_pengguna']]);
 
 // ================= REDIRECT =================
 header('Location: /dashboard');
