@@ -198,13 +198,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         .register-card {
             background: white;
-            border-radius: 20px;
-            padding: 1.5rem;
+            border-radius: 16px;
+            padding: 1rem 1.25rem;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
             border: 1px solid rgba(34, 197, 94, 0.1);
             position: relative;
             width: 100%;
-            max-width: 900px;
+            max-width: 850px;
             animation: fadeInUp 0.6s ease-out;
         }
 
@@ -222,22 +222,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         /* Header */
         .register-header {
             text-align: center;
-            margin-bottom: 1.25rem;
+            margin-bottom: 0.75rem;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 1rem;
+            gap: 0.75rem;
         }
 
         .brand-icon {
-            width: 50px;
-            height: 50px;
+            width: 40px;
+            height: 40px;
             background: var(--gradient-1);
-            border-radius: 15px;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
+            font-size: 1.25rem;
             color: white;
             box-shadow: 0 6px 20px rgba(34, 197, 94, 0.3);
             flex-shrink: 0;
@@ -248,7 +248,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         .brand-title {
-            font-size: 1.5rem;
+            font-size: 1.25rem;
             font-weight: 700;
             background: var(--gradient-1);
             -webkit-background-clip: text;
@@ -260,7 +260,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         .brand-subtitle {
             color: #6b7280;
-            font-size: 0.85rem;
+            font-size: 0.75rem;
             margin: 0;
         }
 
@@ -268,7 +268,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .form-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 1rem;
+            gap: 0.65rem;
+            padding: 0 0.5rem;
         }
 
         .form-grid .full-width {
@@ -279,17 +280,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .form-label {
             font-weight: 600;
             color: #374151;
-            margin-bottom: 0.35rem;
+            margin-bottom: 0.25rem;
             display: flex;
             align-items: center;
-            font-size: 0.85rem;
+            font-size: 0.75rem;
         }
 
         .form-label i {
-            margin-right: 0.4rem;
+            margin-right: 0.35rem;
             color: var(--primary-green);
-            width: 14px;
-            font-size: 0.85rem;
+            width: 12px;
+            font-size: 0.75rem;
         }
 
         .form-label .required {
@@ -299,16 +300,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         .form-control, .form-select {
             border: 2px solid #e5e7eb;
-            border-radius: 10px;
-            padding: 0.5rem 0.75rem;
-            font-size: 0.85rem;
+            border-radius: 8px;
+            padding: 0.4rem 0.65rem;
+            font-size: 0.8rem;
             transition: all 0.3s ease;
             background: #fafafa;
         }
 
         .form-control:focus, .form-select:focus {
             border-color: var(--primary-green);
-            box-shadow: 0 0 0 0.2rem rgba(34, 197, 94, 0.15);
+            box-shadow: 0 0 0 0.15rem rgba(34, 197, 94, 0.15);
             background: white;
             outline: none;
         }
@@ -320,15 +321,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         textarea.form-control {
             resize: vertical;
-            min-height: 70px;
+            min-height: 60px;
         }
 
         /* Password Strength */
         .password-strength {
-            height: 3px;
+            height: 2px;
             background: #e5e7eb;
             border-radius: 2px;
-            margin-top: 0.35rem;
+            margin-top: 0.25rem;
             overflow: hidden;
         }
 
@@ -354,9 +355,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         .password-hint {
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             color: #6b7280;
-            margin-top: 0.2rem;
+            margin-top: 0.15rem;
         }
 
         /* Checkbox */
@@ -364,13 +365,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             padding-left: 0;
             display: flex;
             align-items: flex-start;
-            gap: 0.6rem;
+            gap: 0.5rem;
         }
 
         .form-check-input {
-            width: 18px;
-            height: 18px;
-            margin-top: 0.1rem;
+            width: 16px;
+            height: 16px;
+            margin-top: 0.05rem;
             border: 2px solid #d1d5db;
             cursor: pointer;
             flex-shrink: 0;
@@ -383,13 +384,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         .form-check-input:focus {
             border-color: var(--primary-green);
-            box-shadow: 0 0 0 0.2rem rgba(34, 197, 94, 0.15);
+            box-shadow: 0 0 0 0.15rem rgba(34, 197, 94, 0.15);
         }
 
         .form-check-label {
             color: #4b5563;
-            font-size: 0.8rem;
-            line-height: 1.4;
+            font-size: 0.72rem;
+            line-height: 1.3;
             cursor: pointer;
         }
 
@@ -410,13 +411,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border: none;
             color: white;
             font-weight: 600;
-            padding: 0.7rem 1.5rem;
-            border-radius: 10px;
-            font-size: 0.95rem;
+            padding: 0.55rem 1.25rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
             box-shadow: 0 6px 20px rgba(34, 197, 94, 0.3);
             transition: all 0.3s ease;
             width: 100%;
-            margin-top: 0.75rem;
+            margin-top: 0.5rem;
         }
 
         .btn-register:hover {
@@ -431,19 +432,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         /* Links */
         .register-links {
             text-align: center;
-            margin-top: 1rem;
-            padding-top: 1rem;
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
             border-top: 1px solid #e5e7eb;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 1rem;
+            gap: 0.75rem;
         }
 
         .register-links p {
             margin: 0;
             color: #6b7280;
-            font-size: 0.85rem;
+            font-size: 0.75rem;
         }
 
         .register-links a {
@@ -451,7 +452,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             text-decoration: none;
             font-weight: 600;
             transition: all 0.3s ease;
-            font-size: 0.85rem;
+            font-size: 0.75rem;
         }
 
         .register-links a:hover {
@@ -481,8 +482,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .invalid-feedback,
         .valid-feedback {
             display: none;
-            margin-top: 0.35rem;
-            font-size: 0.75rem;
+            margin-top: 0.25rem;
+            font-size: 0.68rem;
             font-weight: 500;
         }
 
@@ -504,7 +505,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         /* Spacing */
         .mb-3 {
-            margin-bottom: 0.75rem !important;
+            margin-bottom: 0.5rem !important;
         }
 
         /* Animations */
@@ -560,14 +561,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         /* Alert */
         .alert {
             border: none;
-            border-radius: 10px;
-            padding: 0.75rem 1rem;
-            margin-bottom: 1rem;
+            border-radius: 8px;
+            padding: 0.55rem 0.85rem;
+            margin-bottom: 0.75rem;
             font-weight: 500;
             display: flex;
             align-items: center;
-            gap: 0.6rem;
-            font-size: 0.85rem;
+            gap: 0.5rem;
+            font-size: 0.75rem;
         }
 
         .alert-danger {
